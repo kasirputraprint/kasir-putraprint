@@ -184,7 +184,7 @@
                     </button>
                 </div>
 
-                <div class="row g-3 m-0 p-0" style="height: calc(100vh - 96px);">
+                <div class="row g-3 m-0 p-0" id="kasir-main-row" style="height: calc(100vh - 96px);">
 
                     <!-- LEFT: Product Selection & Order Building -->
                     <div class="col-lg-8 kasir-left-panel" id="kasir-col-produk">
@@ -1393,14 +1393,7 @@
             }
         };
 
-        window.addEventListener('resize', function() {
-            if (window.innerWidth >= 992) {
-                const cp = document.getElementById('kasir-col-produk');
-                const ck = document.getElementById('kasir-col-keranjang');
-                if (cp) cp.style.display='';
-                if (ck) ck.style.display='';
-            }
-        });
+
 
         window.toggleMobileMore = function() {
             const m = document.getElementById('mobile-more-menu');
@@ -1428,13 +1421,29 @@
             new MutationObserver(sync).observe(src, {childList:true, characterData:true, subtree:true});
         })();
 
-        // Init mobile: hide keranjang col by default
-        (function() {
+        // FIX: Override inline height style on kasir row (inline > CSS media query)
+        // Also hide keranjang col by default on mobile
+        function fixMobileLayout() {
+            const row = document.getElementById('kasir-main-row');
+            const ck  = document.getElementById('kasir-col-keranjang');
             if (window.innerWidth < 992) {
-                const ck = document.getElementById('kasir-col-keranjang');
+                // Remove the inline height that locks the panel — CSS !important alone can't beat inline style
+                if (row) row.style.height = 'auto';
+                // Hide keranjang by default (show produk first)
                 if (ck) ck.style.display = 'none';
+            } else {
+                // Restore original inline height on desktop
+                if (row) row.style.height = 'calc(100vh - 96px)';
+                // Make sure both cols visible on desktop
+                if (ck) ck.style.display = '';
+                const cp = document.getElementById('kasir-col-produk');
+                if (cp) cp.style.display = '';
             }
-        })();
+        }
+
+        // Run on load and on resize
+        fixMobileLayout();
+        window.addEventListener('resize', fixMobileLayout);
     </script>
 
 </body>

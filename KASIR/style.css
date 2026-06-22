@@ -1118,10 +1118,25 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
         display: none !important;
     }
 
-    /* Main content takes full width, add bottom padding for bottom nav */
+    /* FIX SCROLL BUG 1:
+       overflow-x: hidden on body/html can block touch scroll on mobile browsers.
+       Use 'clip' instead — it clips visually but does NOT create a scroll-blocking context. */
+    html {
+        overflow-x: clip;
+    }
+    body {
+        overflow-x: clip;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: auto;
+    }
+
+    /* Main content: natural full-page scroll on mobile */
     .main-content {
         margin-left: 0 !important;
         padding: 10px 12px 80px 12px !important;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
     }
 
     /* App header compact on mobile */
@@ -1324,28 +1339,42 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
         display: none;
     }
 
-    /* Kasir panels on mobile: full width, stacked */
+    /* FIX SCROLL BUG 2:
+       overflow-y: visible is WRONG — it lets scroll events escape the container,
+       causing the 'stuck scroll' bug. Use 'unset' to let content flow naturally
+       and let the main-content handle all scrolling. */
     .kasir-left-panel,
     .kasir-right-panel {
         height: auto !important;
-        overflow-y: visible !important;
+        max-height: none !important;
+        overflow: unset !important;
+        overflow-y: unset !important;
         padding-right: 0 !important;
         padding-left: 0 !important;
     }
 
+    /* FIX SCROLL BUG 3:
+       The row had inline style height: calc(100vh - 96px) which locks the container height.
+       Force it to auto height on mobile. */
     #panel-kasir .row {
         height: auto !important;
+        min-height: unset !important;
+        overflow: visible !important;
     }
 
     /* Cart rail on mobile: no fixed height */
     .cart-rail {
         height: auto !important;
         border-radius: 12px !important;
+        overflow: visible !important;
     }
 
+    /* Cart items: small internal scroll is OK but needs touch support */
     #cart-items {
-        max-height: 280px;
+        max-height: 260px;
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
     }
 
     /* Catalog grid: 2 columns on mobile */
