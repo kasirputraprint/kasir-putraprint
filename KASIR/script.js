@@ -523,6 +523,10 @@ window.validasiPinPremiumOwner = async function () {
 
             if (targetTabTerkunci && targetElemenMenu) {
                 window.switchTab(targetTabTerkunci, targetElemenMenu);
+                // Sinkronkan warna icon (active state) di menu bawah/mobile
+                if (typeof window._setAllNavActive === "function" && targetElemenMenu.id) {
+                    window._setAllNavActive(targetElemenMenu.id);
+                }
             }
 
             showNotification("Akses Terverifikasi! Selamat Datang Owner.", "success");

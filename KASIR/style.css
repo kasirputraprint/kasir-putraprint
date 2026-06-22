@@ -1405,7 +1405,26 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
        MOBILE VISUAL POLISH — tampilan lebih rapi
        ══════════════════════════════════════════ */
 
-    /* Produk grid: 2 kolom di HP */
+    /* 1. KASIR: Kategori Produk (Pills) Scroll Horizontal */
+    #category-bar {
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        padding-bottom: 8px !important;
+        -webkit-overflow-scrolling: touch;
+        /* Sembunyikan scrollbar bawaan browser tapi tetap bisa di-scroll */
+        scrollbar-width: none; 
+    }
+    #category-bar::-webkit-scrollbar {
+        display: none;
+    }
+    #category-bar .cat-pill {
+        white-space: nowrap !important; /* Teks tidak turun ke baris baru */
+        padding: 5px 12px !important;
+        font-size: 0.75rem !important;
+        flex-shrink: 0;
+    }
+
+    /* 2. KASIR: Produk grid (2 kolom) */
     #katalog-produk {
         grid-template-columns: repeat(2, 1fr) !important;
     }
@@ -1415,85 +1434,93 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
         max-width: 50% !important;
         flex: 0 0 50% !important;
     }
-
-    /* Product card lebih compact di HP */
     .prod-grid-card {
         padding: 10px 8px !important;
         border-radius: 10px !important;
     }
-    .prod-grid-card .fw-bold { font-size: 0.72rem !important; }
-    .prod-grid-card small    { font-size: 0.68rem !important; }
+    .prod-grid-card .fw-bold { font-size: 0.7rem !important; }
+    .prod-grid-card small    { font-size: 0.65rem !important; }
     .prod-icon-box            { height: 30px !important; font-size: 1rem !important; }
 
+    /* 3. ORDER & PELANGGAN & DASHBOARD: Kartu Statistik Jadi 2 Kolom */
+    #panel-order .row.g-3.mb-4,
+    #panel-pelanggan .row.g-3.mb-4,
+    #panel-dashboard .row.g-3.mb-4 {
+        display: flex;
+        flex-wrap: wrap;
+    }
+    #panel-order .row.g-3.mb-4 > [class*="col-"],
+    #panel-pelanggan .row.g-3.mb-4 > [class*="col-"],
+    #panel-dashboard .row.g-3.mb-4 > [class*="col-"] {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+        width: 50% !important;
+        padding-right: 4px !important;
+        padding-left: 4px !important;
+    }
+    .stat-card-dark { 
+        padding: 10px !important; 
+        margin-bottom: 0 !important;
+        min-height: 75px;
+    }
+    .stat-value { font-size: 1.1rem !important; margin-top: 4px; }
+    .stat-label { font-size: 0.55rem !important; }
+    .stat-icon  { width: 26px !important; height: 26px !important; font-size: 0.75rem !important; }
+
+    /* 4. ORDER: Tab Switcher (Table / Kanban) ala Segmented Control */
+    #panel-order .d-flex.justify-content-between.align-items-end {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 12px;
+    }
+    #panel-order .btn-group {
+        display: flex !important;
+        width: 100%;
+        background: var(--bg-surface);
+        border-radius: 10px;
+        padding: 4px;
+        border: 1px solid var(--border-default);
+    }
+    #panel-order .btn-group .btn {
+        flex: 1;
+        border: none !important;
+        border-radius: 8px !important;
+        font-size: 0.75rem !important;
+        padding: 6px 0 !important;
+        color: var(--text-muted);
+    }
+    #panel-order .btn-group .btn.active {
+        background: var(--bg-elevated) !important;
+        color: var(--text-primary) !important;
+        box-shadow: var(--shadow-xs);
+        font-weight: 700;
+    }
+
+    /* 5. FORM INPUT & PADDING: Lebih Rapat & Padat */
+    .form-control, .form-select {
+        font-size: 0.8rem !important;
+        padding: 6px 10px !important;
+        height: auto !important;
+    }
+    .form-label { font-size: 0.68rem !important; margin-bottom: 3px !important; }
+    .section-label { font-size: 0.6rem !important; margin-bottom: 8px !important; }
+    .premium-card { padding: 12px !important; }
+    .filter-bar { padding: 8px 10px !important; }
+    .filter-bar .row { gap: 6px; margin: 0; }
+    .filter-bar .col-md-3 { padding: 0 !important; } /* Hilangkan jarak antar form di filter */
+
+    /* 6. TABEL: Teks Kecil & Rapat (Hemat Tempat) */
+    .table { font-size: 0.7rem !important; margin-bottom: 0 !important; }
+    .table thead th { font-size: 0.58rem !important; padding: 6px 8px !important; }
+    .table td, .table th { padding: 6px 8px !important; vertical-align: middle; }
+    .badge { font-size: 0.55rem !important; padding: 3px 6px !important; }
+    
     /* Search bar full-width di HP */
     .search-wrapper { width: 100% !important; }
     #search-product-input { width: 100% !important; }
 
-    /* Category bar lebih compact */
-    #category-bar { gap: 5px !important; padding-bottom: 6px !important; }
-    #category-bar .cat-pill {
-        padding: 4px 10px !important;
-        font-size: 0.72rem !important;
-    }
-
-    /* Catalog card header: stack vertical di HP kecil */
-    #katalog-produk + * .d-flex,
-    .premium-card .d-flex.justify-content-between {
-        flex-wrap: wrap;
-        gap: 8px;
-    }
-
-    /* Form label lebih ringkas */
-    .form-label { font-size: 0.7rem !important; margin-bottom: 3px !important; }
-
-    /* Input & select lebih compact */
-    .form-control, .form-select {
-        font-size: 0.82rem !important;
-        padding: 7px 10px !important;
-    }
-
-    /* Section label lebih kecil */
-    .section-label { font-size: 0.6rem !important; margin-bottom: 8px !important; }
-
-    /* App header title */
-    #page-title { font-size: 0.92rem !important; }
-    #sync-status { font-size: 0.6rem !important; padding: 2px 6px !important; }
-
-    /* Stat cards di Dashboard */
-    .stat-value { font-size: 1.2rem !important; }
-    .stat-label { font-size: 0.58rem !important; }
-    .stat-icon  { width: 30px !important; height: 30px !important; font-size: 0.8rem !important; }
-
-    /* Tabel: font kecil supaya tidak terpotong */
-    .table { font-size: 0.75rem !important; }
-    .table thead th { font-size: 0.6rem !important; padding: 7px 8px !important; }
-    .table td, .table th { padding: 7px 8px !important; }
-
-    /* Badge */
-    .badge { font-size: 0.58rem !important; }
-
-    /* Button: ukuran nyaman di HP */
-    .btn { font-size: 0.8rem !important; }
-    .btn-sm { font-size: 0.74rem !important; padding: 5px 10px !important; }
-
-    /* Cart item */
-    .cart-item-premium { padding: 8px 10px !important; }
-
-    /* Cart footer */
-    .cart-footer { padding: 10px 12px !important; }
-    .cart-rail-header { padding: 10px 14px !important; }
-
-    /* Section divider margin */
-    .premium-card + .premium-card { margin-top: 0 !important; }
-
-    /* Chart card */
-    .chart-card { padding: 12px !important; }
-
-    /* Filter bar */
-    .filter-bar { padding: 10px 12px !important; }
-
     /* Modal full-width pada HP kecil */
-    .modal-dialog { max-width: calc(100vw - 24px) !important; }
+    .modal-dialog { max-width: calc(100vw - 16px) !important; margin: 8px auto !important; }
     .modal-content { border-radius: 14px !important; }
 }
 
