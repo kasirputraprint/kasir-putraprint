@@ -1,4 +1,4 @@
-﻿/* ================================================================
+/* ================================================================
    PUTRA PRINT — STUDIO POS v10
    Design System — Clean Light Mode (Premium White)
    ================================================================ */
@@ -1400,6 +1400,101 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
 
     /* Filter bar */
     .filter-bar .row { gap: 8px; }
+
+    /* ══════════════════════════════════════════
+       MOBILE VISUAL POLISH — tampilan lebih rapi
+       ══════════════════════════════════════════ */
+
+    /* Produk grid: 2 kolom di HP */
+    #katalog-produk {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    #katalog-produk .col,
+    #katalog-produk [class*="col-"] {
+        width: 50% !important;
+        max-width: 50% !important;
+        flex: 0 0 50% !important;
+    }
+
+    /* Product card lebih compact di HP */
+    .prod-grid-card {
+        padding: 10px 8px !important;
+        border-radius: 10px !important;
+    }
+    .prod-grid-card .fw-bold { font-size: 0.72rem !important; }
+    .prod-grid-card small    { font-size: 0.68rem !important; }
+    .prod-icon-box            { height: 30px !important; font-size: 1rem !important; }
+
+    /* Search bar full-width di HP */
+    .search-wrapper { width: 100% !important; }
+    #search-product-input { width: 100% !important; }
+
+    /* Category bar lebih compact */
+    #category-bar { gap: 5px !important; padding-bottom: 6px !important; }
+    #category-bar .cat-pill {
+        padding: 4px 10px !important;
+        font-size: 0.72rem !important;
+    }
+
+    /* Catalog card header: stack vertical di HP kecil */
+    #katalog-produk + * .d-flex,
+    .premium-card .d-flex.justify-content-between {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Form label lebih ringkas */
+    .form-label { font-size: 0.7rem !important; margin-bottom: 3px !important; }
+
+    /* Input & select lebih compact */
+    .form-control, .form-select {
+        font-size: 0.82rem !important;
+        padding: 7px 10px !important;
+    }
+
+    /* Section label lebih kecil */
+    .section-label { font-size: 0.6rem !important; margin-bottom: 8px !important; }
+
+    /* App header title */
+    #page-title { font-size: 0.92rem !important; }
+    #sync-status { font-size: 0.6rem !important; padding: 2px 6px !important; }
+
+    /* Stat cards di Dashboard */
+    .stat-value { font-size: 1.2rem !important; }
+    .stat-label { font-size: 0.58rem !important; }
+    .stat-icon  { width: 30px !important; height: 30px !important; font-size: 0.8rem !important; }
+
+    /* Tabel: font kecil supaya tidak terpotong */
+    .table { font-size: 0.75rem !important; }
+    .table thead th { font-size: 0.6rem !important; padding: 7px 8px !important; }
+    .table td, .table th { padding: 7px 8px !important; }
+
+    /* Badge */
+    .badge { font-size: 0.58rem !important; }
+
+    /* Button: ukuran nyaman di HP */
+    .btn { font-size: 0.8rem !important; }
+    .btn-sm { font-size: 0.74rem !important; padding: 5px 10px !important; }
+
+    /* Cart item */
+    .cart-item-premium { padding: 8px 10px !important; }
+
+    /* Cart footer */
+    .cart-footer { padding: 10px 12px !important; }
+    .cart-rail-header { padding: 10px 14px !important; }
+
+    /* Section divider margin */
+    .premium-card + .premium-card { margin-top: 0 !important; }
+
+    /* Chart card */
+    .chart-card { padding: 12px !important; }
+
+    /* Filter bar */
+    .filter-bar { padding: 10px 12px !important; }
+
+    /* Modal full-width pada HP kecil */
+    .modal-dialog { max-width: calc(100vw - 24px) !important; }
+    .modal-content { border-radius: 14px !important; }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1408,14 +1503,37 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
 @media (min-width: 768px) and (max-width: 991.98px) {
     .sidebar { --sidebar-w: 60px; --sidebar-w-open: 220px; }
     .main-content { margin-left: 60px !important; padding: 14px 18px !important; }
-    .kasir-left-panel { height: auto !important; padding-right: 0 !important; }
+
+    /* Kasir: stack panels */
+    .kasir-left-panel  { height: auto !important; padding-right: 0 !important; }
     .kasir-right-panel { height: auto !important; padding-left: 0 !important; }
-    .cart-rail { height: auto !important; }
-    #cart-items { max-height: 300px; }
-    #panel-kasir .row { height: auto !important; }
-    .bottom-nav { display: none !important; }
+    .cart-rail         { height: auto !important; }
+    #cart-items        { max-height: 300px; }
+    #panel-kasir .row,
+    #kasir-main-row    { height: auto !important; }
+
+    /* Produk grid: 3 kolom di tablet */
+    #katalog-produk {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+    #katalog-produk [class*="col-"] {
+        width: 33.33% !important;
+        max-width: 33.33% !important;
+        flex: 0 0 33.33% !important;
+    }
+
+    /* Tabel font ringkas */
+    .table { font-size: 0.8rem !important; }
+    .table thead th { font-size: 0.65rem !important; }
+
+    /* Stat value */
+    .stat-value { font-size: 1.3rem !important; }
+
+    /* Hidden mobile-only elements */
+    .bottom-nav        { display: none !important; }
     .mobile-kasir-tabs { display: none !important; }
-    .mobile-more-menu { display: none !important; }
+    .mobile-more-menu  { display: none !important; }
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1426,4 +1544,3 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
     .mobile-kasir-tabs { display: none !important; }
     .mobile-more-menu  { display: none !important; }
 }
-
