@@ -505,25 +505,35 @@ window.clearAngkaPin = function () {
     if (document.getElementById("pesan-eror-pin")) document.getElementById("pesan-eror-pin").classList.add("d-none");
 };
 
-// Pengecekan PIN Owner langsung
-window.validasiPinPremiumOwner = function () {
-    const inputPin = document.getElementById("input-pin-premium").value;
-    const pinSistem = localStorage.getItem("pin_admin") || "1234";
+// Pengecekan PIN Owner — Validasi dari Firebase (AMAN, tidak bisa dilihat via F12)
+window.validasiPinPremiumOwner = async function () {
+    const inputPin = document.getElementById("input-pin-premium").value.trim();
+    if (!inputPin) return;
 
-    if (inputPin === pinSistem) {
-        const modalEl = document.getElementById('modalPinOwnerPremium');
-        const modalInst = bootstrap.Modal.getInstance(modalEl);
-        if (modalInst) modalInst.hide();
+    try {
+        const { get, ref: dbRef } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js");
+        const snapshot = await get(dbRef(db, 'settings/pin_owner'));
+        // Jika belum pernah diset di Firebase, fallback ke "1234" (harap segera ganti!)
+        const pinSistem = snapshot.exists() ? snapshot.val() : "1234";
 
-        if (targetTabTerkunci && targetElemenMenu) {
-            window.switchTab(targetTabTerkunci, targetElemenMenu);
+        if (inputPin === String(pinSistem)) {
+            const modalEl = document.getElementById('modalPinOwnerPremium');
+            const modalInst = bootstrap.Modal.getInstance(modalEl);
+            if (modalInst) modalInst.hide();
+
+            if (targetTabTerkunci && targetElemenMenu) {
+                window.switchTab(targetTabTerkunci, targetElemenMenu);
+            }
+
+            showNotification("Akses Terverifikasi! Selamat Datang Owner.", "success");
+        } else {
+            document.getElementById("pesan-eror-pin").classList.remove("d-none");
+            document.getElementById("input-pin-premium").value = "";
+            document.getElementById("input-pin-premium").focus();
         }
-
-        showNotification("Akses Terverifikasi! Selamat Datang Owner.", "success");
-    } else {
+    } catch (err) {
+        console.error("Gagal validasi PIN:", err);
         document.getElementById("pesan-eror-pin").classList.remove("d-none");
-        document.getElementById("input-pin-premium").value = "";
-        document.getElementById("input-pin-premium").focus();
     }
 };
 
@@ -2875,8 +2885,8 @@ document
         renderTabelAdminProduk
     );
 
-// 2. Fungsi Simpan PIN Baru yang Ditutup dengan Benar
-window.simpanPinBaru = function () {
+// 2. Fungsi Simpan PIN Baru — Disimpan ke Firebase (AMAN)
+window.simpanPinBaru = async function () {
     const pinBaru = document.getElementById("setting-pin-baru").value.trim();
 
     if (pinBaru.length < 4) {
@@ -2884,9 +2894,16 @@ window.simpanPinBaru = function () {
         return;
     }
 
-    localStorage.setItem("pin_admin", pinBaru);
-    Swal.fire({icon: 'success', title: 'Berhasil', text: 'PIN berhasil disimpan'});
-    document.getElementById("setting-pin-baru").value = "";
+    try {
+        await set(ref(db, 'settings/pin_owner'), pinBaru);
+        // Hapus sisa jejak PIN lama dari localStorage jika ada
+        localStorage.removeItem("pin_admin");
+        Swal.fire({icon: 'success', title: 'Berhasil', text: 'PIN berhasil disimpan ke cloud!'});
+        document.getElementById("setting-pin-baru").value = "";
+    } catch (err) {
+        Swal.fire({icon: 'error', title: 'Gagal', text: 'Gagal menyimpan PIN. Coba lagi.'});
+        console.error("Gagal simpan PIN:", err);
+    }
 };
 
 // ========================================================
