@@ -1377,20 +1377,74 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
         overscroll-behavior-y: contain;
     }
 
-    /* Catalog grid: 2 columns on mobile */
+    /* ──────────────────────────────────────────────────────────────
+       FIX SCROLL NYANGKUT — ROOT CAUSE:
+       Multiple nested scroll containers (max-height + overflow-y:auto)
+       inside panels. On mobile, ALL internal scroll containers must be
+       released so the single page scroll handles everything naturally.
+       ────────────────────────────────────────────────────────────── */
+
+    /* 1. Catalog product grid — release fixed height */
     #katalog-produk {
-        max-height: 240px !important;
+        max-height: none !important;
+        overflow-y: visible !important;
+        overflow: visible !important;
     }
 
-    /* Tables scrollable on mobile */
-    .table-responsive {
+    /* 2. Customer suggestion box — OK to keep scroll (it's a dropdown) */
+    .cust-suggest-box {
+        max-height: 180px;
+        overflow-y: auto;
         -webkit-overflow-scrolling: touch;
     }
 
-    /* Stat cards stack on mobile */
-    .stat-card-dark {
-        margin-bottom: 8px;
+    /* 3. Laporan table scroll area — release fixed height */
+    .table-responsive {
+        overflow-x: auto;
+        overflow-y: visible !important;
+        max-height: none !important;
+        -webkit-overflow-scrolling: touch;
     }
+
+    /* 4. Kanban body columns — release fixed height, stack vertically */
+    .kanban-body {
+        max-height: none !important;
+        min-height: unset !important;
+        overflow-y: visible !important;
+        overflow: visible !important;
+    }
+
+    /* 5. Chart containers — release fixed height */
+    .chart-card [style*="height:260px"],
+    .chart-card > div[style] {
+        height: 200px !important;
+    }
+
+    /* 6. Stat label scroll area in Laporan — release */
+    [style*="max-height:480px"] {
+        max-height: none !important;
+        overflow-y: visible !important;
+    }
+
+    /* 7. Container baris per lembar (finishing potong) — keep small scroll */
+    #container-baris-per-lembar {
+        max-height: 120px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* 8. Kanban board — stack columns vertically on mobile */
+    .kanban-board .col-md-4 {
+        width: 100% !important;
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+    }
+
+    /* 9. Sidebar menu internal scroll — irrelevant on mobile (sidebar hidden) */
+    .sidebar-menu { overflow: unset; }
+
+    /* Stat cards stack on mobile */
+    .stat-card-dark { margin-bottom: 8px; }
 
     /* Filter bar stacks naturally */
     .filter-bar .row { gap: 8px; }
@@ -1401,6 +1455,7 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
     /* Modal full-screen friendly */
     .modal-dialog { margin: 12px !important; }
 }
+
 
 /* ── Tablet: 768px – 991px ── */
 @media (min-width: 768px) and (max-width: 991.98px) {

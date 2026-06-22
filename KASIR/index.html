@@ -1439,6 +1439,45 @@
                 const cp = document.getElementById('kasir-col-produk');
                 if (cp) cp.style.display = '';
             }
+
+            // Fix ALL inline max-height/overflow on internal elements
+            // CSS media queries cannot override inline styles, so we use JS
+            const isMobile = window.innerWidth < 992;
+
+            // Elements with inline max-height that create nested scrollers
+            const inlineScrollEls = [
+                // Katalog produk (max-height:310px; overflow-y:auto)
+                document.querySelector('#katalog-produk'),
+                // Laporan table wrapper (max-height:480px; overflow-y:auto)
+                document.querySelector('[style*="max-height:480px"]') ||
+                document.querySelector('.table-responsive[style]'),
+            ];
+
+            inlineScrollEls.forEach(el => {
+                if (!el) return;
+                if (isMobile) {
+                    el.dataset.origMaxHeight = el.dataset.origMaxHeight || el.style.maxHeight;
+                    el.dataset.origOverflow  = el.dataset.origOverflow  || el.style.overflowY;
+                    el.style.maxHeight = 'none';
+                    el.style.overflow  = 'visible';
+                } else {
+                    if (el.dataset.origMaxHeight) el.style.maxHeight = el.dataset.origMaxHeight;
+                    if (el.dataset.origOverflow)  el.style.overflowY = el.dataset.origOverflow;
+                }
+            });
+
+            // Kanban body columns inline height (min-height:500px, max-height:70vh)
+            document.querySelectorAll('.kanban-body').forEach(el => {
+                if (isMobile) {
+                    el.style.minHeight = 'unset';
+                    el.style.maxHeight = 'none';
+                    el.style.overflow  = 'visible';
+                } else {
+                    el.style.minHeight = '';
+                    el.style.maxHeight = '';
+                    el.style.overflow  = '';
+                }
+            });
         }
 
         // Run on load and on resize
