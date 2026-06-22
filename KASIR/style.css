@@ -1446,25 +1446,38 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
     #panel-order .row.g-3.mb-4,
     #panel-pelanggan .row.g-3.mb-4,
     #panel-dashboard .row.g-3.mb-4,
-    #panel-laporan .row.g-3.mb-3 {
+    #panel-laporan .row.g-3.mb-4 {
         display: flex;
         flex-wrap: wrap;
     }
     #panel-order .row.g-3.mb-4 > [class*="col-"],
     #panel-pelanggan .row.g-3.mb-4 > [class*="col-"],
     #panel-dashboard .row.g-3.mb-4 > [class*="col-"],
-    #panel-laporan .row.g-3.mb-3 > [class*="col-"] {
+    #panel-laporan .row.g-3.mb-4 > [class*="col-"] {
         flex: 0 0 50% !important;
         max-width: 50% !important;
         width: 50% !important;
         padding-right: 4px !important;
         padding-left: 4px !important;
     }
-    /* Khusus untuk kartu ke-3 di Laporan agar tampil penuh di baris kedua (jika total 3 kartu) */
-    #panel-laporan .row.g-3.mb-3 > [class*="col-"]:nth-child(3) {
+    /* Khusus untuk kartu ke-3 di Laporan agar tampil penuh di baris kedua */
+    #panel-laporan .row.g-3.mb-4 > [class*="col-"]:nth-child(3) {
         flex: 0 0 100% !important;
         max-width: 100% !important;
         width: 100% !important;
+    }
+    
+    /* Layout Filter Laporan (Tanggal Berdampingan) */
+    #panel-laporan .premium-card .row.align-items-end > div:nth-child(3),
+    #panel-laporan .premium-card .row.align-items-end > div:nth-child(4) {
+        flex: 0 0 50% !important;
+        max-width: 50% !important;
+        width: 50% !important;
+        padding-right: 4px !important;
+        padding-left: 4px !important;
+    }
+    #panel-laporan .premium-card .row.align-items-end > div:nth-child(5) {
+        margin-top: 8px !important;
     }
     .stat-card-dark { 
         padding: 10px !important; 
@@ -1552,10 +1565,20 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
     }
     .badge { font-size: 0.55rem !important; padding: 4px 8px !important; }
     
-    /* Perbaikan spasi kolom Aksi di Master Pricelist agar lebih rapi */
-    #adm-table-produk td:last-child, #adm-table-produk th:last-child {
-        min-width: 90px;
+    /* Perbaikan Khusus Tabel Master Pricelist (Agar Muat di Layar HP Tanpa Scroll) */
+    #adm-table-produk {
+        white-space: normal !important; 
+    }
+    #adm-table-produk td {
+        white-space: normal !important; /* Teks boleh melipat agar tabel mengecil dan muat di layar */
+        font-size: 0.65rem !important; /* Font lebih kecil agar muat */
+        padding: 8px 4px !important;
+    }
+    #adm-table-produk td:last-child {
+        min-width: 65px; /* Cukup untuk 2 tombol icon edit/hapus */
+        white-space: nowrap !important;
         text-align: center;
+        padding: 8px 2px !important;
     }
 
     /* Search bar full-width di HP */
