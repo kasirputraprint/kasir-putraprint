@@ -1566,19 +1566,38 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
     .badge { font-size: 0.55rem !important; padding: 4px 8px !important; }
     
     /* Perbaikan Khusus Tabel Master Pricelist (Agar Muat di Layar HP Tanpa Scroll) */
-    #adm-table-produk {
-        white-space: normal !important; 
+    #table-master-produk {
+        table-layout: fixed !important;
+        width: 100% !important;
     }
-    #adm-table-produk td {
-        white-space: normal !important; /* Teks boleh melipat agar tabel mengecil dan muat di layar */
-        font-size: 0.65rem !important; /* Font lebih kecil agar muat */
+    #table-master-produk th, #table-master-produk td {
+        white-space: normal !important;
+        word-wrap: break-word;
         padding: 8px 4px !important;
+        font-size: 0.62rem !important;
+        vertical-align: middle;
     }
-    #adm-table-produk td:last-child {
-        min-width: 65px; /* Cukup untuk 2 tombol icon edit/hapus */
-        white-space: nowrap !important;
+    /* Mengatur persentase lebar masing-masing kolom secara presisi */
+    #table-master-produk th:nth-child(1), #table-master-produk td:nth-child(1) {
+        width: 38% !important; /* Nama Produk */
+    }
+    #table-master-produk th:nth-child(2), #table-master-produk td:nth-child(2) {
+        width: 25% !important; /* Kategori */
+    }
+    #table-master-produk th:nth-child(3), #table-master-produk td:nth-child(3) {
+        width: 20% !important; /* Harga */
+    }
+    #table-master-produk th:nth-child(4), #table-master-produk td:nth-child(4) {
+        width: 17% !important; /* Aksi */
         text-align: center;
-        padding: 8px 2px !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+    }
+    /* Memperkecil padding pada tombol aksi khusus di mobile agar lebih muat */
+    #table-master-produk td:nth-child(4) .btn {
+        padding: 4px 6px !important;
+        font-size: 0.6rem !important;
+        margin: 0 1px !important;
     }
 
     /* Search bar full-width di HP */
