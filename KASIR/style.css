@@ -1096,3 +1096,317 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
     @page { size: auto; margin: 0mm; }
     .no-print { display: none !important; }
 }
+
+/* ────────────────────────────────────────────────────────────────
+   27. RESPONSIVE — BOTTOM NAVIGATION BAR (Mobile)
+   ──────────────────────────────────────────────────────────────── */
+
+/* Bottom nav — hidden on desktop, shown on mobile */
+.bottom-nav {
+    display: none;
+}
+
+.mobile-kasir-tabs {
+    display: none;
+}
+
+/* ── Mobile: < 768px ── */
+@media (max-width: 767.98px) {
+
+    /* Hide desktop sidebar */
+    .sidebar {
+        display: none !important;
+    }
+
+    /* Main content takes full width, add bottom padding for bottom nav */
+    .main-content {
+        margin-left: 0 !important;
+        padding: 10px 12px 80px 12px !important;
+    }
+
+    /* App header compact on mobile */
+    .app-header {
+        padding: 8px 12px !important;
+        margin-bottom: 12px !important;
+    }
+    .live-clock, .version-tag { display: none !important; }
+    #btn-logout { font-size: 0 !important; padding: 6px 8px !important; gap: 0 !important; }
+    #btn-logout i { font-size: 0.9rem !important; }
+
+    /* ── BOTTOM NAVIGATION BAR ── */
+    .bottom-nav {
+        display: flex !important;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: 62px;
+        background: var(--bg-surface);
+        border-top: 1px solid var(--border-default);
+        box-shadow: 0 -4px 20px rgba(15,23,42,0.08);
+        z-index: 1100;
+        align-items: stretch;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    .bnav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        text-decoration: none;
+        color: var(--text-muted);
+        font-size: 0.6rem;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        transition: all var(--t-fast);
+        padding: 8px 4px 6px 4px;
+        position: relative;
+    }
+
+    .bnav-item i {
+        font-size: 1.1rem;
+        transition: all var(--t-fast);
+    }
+
+    .bnav-item.active {
+        color: var(--accent);
+    }
+
+    .bnav-item.active i {
+        color: var(--accent);
+        transform: translateY(-1px);
+    }
+
+    .bnav-item.active::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 50%;
+        transform: translateX(-50%);
+        width: 28px; height: 2.5px;
+        background: var(--accent);
+        border-radius: 0 0 4px 4px;
+    }
+
+    /* ── MOBILE MORE MENU (Bottom Sheet) ── */
+    .mobile-more-menu {
+        display: none;
+        position: fixed;
+        inset: 0;
+        z-index: 1200;
+    }
+    .mobile-more-menu.open {
+        display: block;
+    }
+
+    .mobile-more-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(15,23,42,0.4);
+        backdrop-filter: blur(2px);
+        animation: fadeIn 0.2s ease;
+    }
+
+    .mobile-more-sheet {
+        position: absolute;
+        bottom: 0; left: 0; right: 0;
+        background: var(--bg-surface);
+        border-radius: 20px 20px 0 0;
+        padding: 12px 20px 32px 20px;
+        box-shadow: 0 -8px 32px rgba(15,23,42,0.15);
+        animation: slideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    @keyframes slideUp {
+        from { transform: translateY(100%); }
+        to   { transform: translateY(0); }
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
+    }
+
+    .mobile-more-handle {
+        width: 36px; height: 4px;
+        background: var(--border-strong);
+        border-radius: 10px;
+        margin: 0 auto 20px auto;
+    }
+
+    .mobile-more-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 12px;
+    }
+
+    .mobile-more-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 7px;
+        text-decoration: none;
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .mobile-more-icon {
+        width: 52px; height: 52px;
+        border-radius: 14px;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-default);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+        transition: all var(--t-fast);
+    }
+
+    .mobile-more-item:active .mobile-more-icon {
+        background: var(--accent-dim);
+        border-color: var(--accent);
+        color: var(--accent);
+        transform: scale(0.95);
+    }
+
+    /* ── MOBILE KASIR TAB SWITCH ── */
+    .mobile-kasir-tabs {
+        display: flex !important;
+        background: var(--bg-elevated);
+        border: 1px solid var(--border-default);
+        border-radius: 10px;
+        padding: 4px;
+        margin-bottom: 12px;
+        gap: 4px;
+    }
+
+    .mktab {
+        flex: 1;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 8px;
+        background: transparent;
+        color: var(--text-muted);
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all var(--t-fast);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        position: relative;
+    }
+
+    .mktab.active {
+        background: var(--bg-surface);
+        color: var(--text-primary);
+        box-shadow: var(--shadow-xs);
+    }
+
+    .mktab-badge {
+        background: var(--rose);
+        color: #fff;
+        font-size: 0.6rem;
+        font-weight: 700;
+        border-radius: 100px;
+        min-width: 16px;
+        height: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+    }
+
+    .mktab-badge[data-count="0"],
+    .mktab-badge:empty {
+        display: none;
+    }
+
+    /* Kasir panels on mobile: full width, stacked */
+    .kasir-left-panel,
+    .kasir-right-panel {
+        height: auto !important;
+        overflow-y: visible !important;
+        padding-right: 0 !important;
+        padding-left: 0 !important;
+    }
+
+    #panel-kasir .row {
+        height: auto !important;
+    }
+
+    /* Cart rail on mobile: no fixed height */
+    .cart-rail {
+        height: auto !important;
+        border-radius: 12px !important;
+    }
+
+    #cart-items {
+        max-height: 280px;
+        overflow-y: auto;
+    }
+
+    /* Catalog grid: 2 columns on mobile */
+    #katalog-produk {
+        max-height: 240px !important;
+    }
+
+    /* Tables scrollable on mobile */
+    .table-responsive {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Stat cards stack on mobile */
+    .stat-card-dark {
+        margin-bottom: 8px;
+    }
+
+    /* Filter bar stacks naturally */
+    .filter-bar .row { gap: 8px; }
+
+    /* Premium card padding reduced */
+    .premium-card { padding: 14px !important; }
+
+    /* Modal full-screen friendly */
+    .modal-dialog { margin: 12px !important; }
+}
+
+/* ── Tablet: 768px – 991px ── */
+@media (min-width: 768px) and (max-width: 991.98px) {
+
+    .sidebar {
+        --sidebar-w: 60px;
+        --sidebar-w-open: 220px;
+    }
+
+    .main-content {
+        margin-left: 60px !important;
+        padding: 14px 18px !important;
+    }
+
+    /* Kasir: stack panels vertically on tablet too */
+    .kasir-left-panel {
+        height: auto !important;
+        padding-right: 0 !important;
+    }
+    .kasir-right-panel {
+        height: auto !important;
+        padding-left: 0 !important;
+    }
+    .cart-rail { height: auto !important; }
+    #cart-items { max-height: 300px; }
+    #panel-kasir .row { height: auto !important; }
+
+    /* Bottom nav hidden on tablet */
+    .bottom-nav { display: none !important; }
+    .mobile-kasir-tabs { display: none !important; }
+}
+
+/* ── Desktop: ≥ 992px — TIDAK ADA PERUBAHAN ── */
+@media (min-width: 992px) {
+    .bottom-nav { display: none !important; }
+    .mobile-kasir-tabs { display: none !important; }
+    .mobile-more-menu { display: none !important; }
+}

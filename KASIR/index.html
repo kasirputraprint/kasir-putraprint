@@ -90,6 +90,59 @@
 
 
     <!-- ═══════════════════════════════════════════════════════════
+         BOTTOM NAVIGATION — Mobile Only (hidden on desktop)
+         ═══════════════════════════════════════════════════════════ -->
+    <nav class="bottom-nav no-print" id="bottom-nav">
+        <a href="#" class="bnav-item active" id="bnav-kasir" onclick="mobileNavSwitch('panel-kasir', 'menu-kasir', this); return false;">
+            <i class="fa-solid fa-cash-register"></i>
+            <span>Kasir</span>
+        </a>
+        <a href="#" class="bnav-item" id="bnav-order" onclick="mobileNavSwitch('panel-order', 'menu-order', this); return false;">
+            <i class="fa-solid fa-folder-open"></i>
+            <span>Order</span>
+        </a>
+        <a href="#" class="bnav-item" id="bnav-pelanggan" onclick="mobileNavSwitch('panel-pelanggan', 'menu-pelanggan', this); return false;">
+            <i class="fa-solid fa-users"></i>
+            <span>Pelanggan</span>
+        </a>
+        <a href="#" class="bnav-item" id="bnav-dashboard" onclick="mobilePinSwitch('panel-dashboard', 'menu-dashboard', this); return false;">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="#" class="bnav-item" id="bnav-more" onclick="toggleMobileMore(this); return false;">
+            <i class="fa-solid fa-ellipsis"></i>
+            <span>Lainnya</span>
+        </a>
+    </nav>
+
+    <!-- Mobile More Menu (Produk, Laporan, Pengaturan, Logout) -->
+    <div class="mobile-more-menu no-print" id="mobile-more-menu">
+        <div class="mobile-more-backdrop" onclick="closeMobileMore()"></div>
+        <div class="mobile-more-sheet">
+            <div class="mobile-more-handle"></div>
+            <div class="mobile-more-grid">
+                <a href="#" class="mobile-more-item" onclick="mobilePinSwitch('panel-produk','menu-produk', document.getElementById('bnav-more')); closeMobileMore(); return false;">
+                    <div class="mobile-more-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                    <span>Produk</span>
+                </a>
+                <a href="#" class="mobile-more-item" onclick="mobilePinSwitch('panel-laporan','menu-laporan', document.getElementById('bnav-more')); closeMobileMore(); return false;">
+                    <div class="mobile-more-icon"><i class="fa-solid fa-chart-line"></i></div>
+                    <span>Laporan</span>
+                </a>
+                <a href="#" class="mobile-more-item" onclick="mobilePinSwitch('panel-pengaturan','menu-pengaturan', document.getElementById('bnav-more')); closeMobileMore(); return false;">
+                    <div class="mobile-more-icon"><i class="fa-solid fa-gears"></i></div>
+                    <span>Pengaturan</span>
+                </a>
+                <a href="#" class="mobile-more-item" onclick="doLogout(); return false;">
+                    <div class="mobile-more-icon" style="background:var(--rose-dim);"><i class="fa-solid fa-right-from-bracket" style="color:var(--rose);"></i></div>
+                    <span style="color:var(--rose);">Logout</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════════════
          MAIN CONTENT
          ═══════════════════════════════════════════════════════════ -->
     <div class="main-content no-print">
@@ -119,10 +172,22 @@
                  PANEL: KASIR
                  ══════════════════════════════════════════════ -->
             <div id="panel-kasir" class="tab-pane-custom active" style="display:block;">
+
+                <!-- ── MOBILE TAB SWITCH (hanya muncul di HP, disembunyikan di desktop) ── -->
+                <div class="mobile-kasir-tabs d-lg-none" id="mobile-kasir-tabs">
+                    <button class="mktab active" id="mktab-produk" onclick="switchMobileKasirTab('produk')">
+                        <i class="fa-solid fa-grid-2 me-1"></i> Produk
+                    </button>
+                    <button class="mktab" id="mktab-keranjang" onclick="switchMobileKasirTab('keranjang')">
+                        <i class="fa-solid fa-cart-shopping me-1"></i> Keranjang
+                        <span class="mktab-badge" id="mktab-badge">0</span>
+                    </button>
+                </div>
+
                 <div class="row g-3 m-0 p-0" style="height: calc(100vh - 96px);">
 
                     <!-- LEFT: Product Selection & Order Building -->
-                    <div class="col-lg-8 kasir-left-panel">
+                    <div class="col-lg-8 kasir-left-panel" id="kasir-col-produk">
 
                         <!-- Customer Info Card -->
                         <div class="premium-card">
@@ -279,7 +344,7 @@
 
 
                     <!-- RIGHT: Order Rail / Cart -->
-                    <div class="col-lg-4 kasir-right-panel" style="padding-left:6px;">
+                    <div class="col-lg-4 kasir-right-panel" id="kasir-col-keranjang" style="padding-left:6px;">
                         <div class="cart-rail">
 
                             <!-- Cart Header -->
@@ -1285,6 +1350,90 @@
             }
             tick();
             setInterval(tick, 1000);
+        })();
+    </script>
+
+    <!-- MOBILE RESPONSIVE — Navigation & Tab Switch JS -->
+    <script>
+        function _setAllNavActive(menuItemId) {
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            const d = document.getElementById(menuItemId);
+            if (d) d.classList.add('active');
+            document.querySelectorAll('.bnav-item').forEach(el => el.classList.remove('active'));
+            const map = { 'menu-kasir':'bnav-kasir','menu-order':'bnav-order','menu-pelanggan':'bnav-pelanggan','menu-dashboard':'bnav-dashboard','menu-produk':'bnav-more','menu-laporan':'bnav-more','menu-pengaturan':'bnav-more' };
+            const bid = map[menuItemId];
+            if (bid) { const b = document.getElementById(bid); if (b) b.classList.add('active'); }
+        }
+
+        window.mobileNavSwitch = function(panelId, menuItemId) {
+            const dm = document.getElementById(menuItemId);
+            if (dm) switchTab(panelId, dm);
+            _setAllNavActive(menuItemId);
+            if (panelId === 'panel-kasir') switchMobileKasirTab('produk');
+        };
+
+        window.mobilePinSwitch = function(panelId, menuItemId) {
+            const dm = document.getElementById(menuItemId);
+            if (dm) bukaTabProteksi(panelId, dm);
+        };
+
+        window.switchMobileKasirTab = function(tab) {
+            const cp = document.getElementById('kasir-col-produk');
+            const ck = document.getElementById('kasir-col-keranjang');
+            const tp = document.getElementById('mktab-produk');
+            const tk = document.getElementById('mktab-keranjang');
+            if (!cp || !ck) return;
+            if (window.innerWidth >= 992) { cp.style.display=''; ck.style.display=''; return; }
+            if (tab === 'produk') {
+                cp.style.display=''; ck.style.display='none';
+                tp.classList.add('active'); tk.classList.remove('active');
+            } else {
+                cp.style.display='none'; ck.style.display='';
+                tk.classList.add('active'); tp.classList.remove('active');
+            }
+        };
+
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 992) {
+                const cp = document.getElementById('kasir-col-produk');
+                const ck = document.getElementById('kasir-col-keranjang');
+                if (cp) cp.style.display='';
+                if (ck) ck.style.display='';
+            }
+        });
+
+        window.toggleMobileMore = function() {
+            const m = document.getElementById('mobile-more-menu');
+            if (!m) return;
+            m.classList.contains('open') ? closeMobileMore() : (m.classList.add('open'), document.body.style.overflow='hidden');
+        };
+
+        window.closeMobileMore = function() {
+            const m = document.getElementById('mobile-more-menu');
+            if (m) m.classList.remove('open');
+            document.body.style.overflow='';
+        };
+
+        // Sync cart badge to mobile tab button
+        (function() {
+            const src = document.getElementById('cart-badge-count');
+            const tgt = document.getElementById('mktab-badge');
+            if (!src || !tgt) return;
+            function sync() {
+                const n = src.textContent.trim();
+                tgt.textContent = n;
+                tgt.style.display = (!n || n==='0') ? 'none' : 'inline-flex';
+            }
+            sync();
+            new MutationObserver(sync).observe(src, {childList:true, characterData:true, subtree:true});
+        })();
+
+        // Init mobile: hide keranjang col by default
+        (function() {
+            if (window.innerWidth < 992) {
+                const ck = document.getElementById('kasir-col-keranjang');
+                if (ck) ck.style.display = 'none';
+            }
         })();
     </script>
 
