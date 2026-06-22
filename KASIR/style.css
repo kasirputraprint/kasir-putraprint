@@ -1,4 +1,4 @@
-/* ================================================================
+﻿/* ================================================================
    PUTRA PRINT — STUDIO POS v10
    Design System — Clean Light Mode (Premium White)
    ================================================================ */
@@ -1098,57 +1098,56 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
 }
 
 /* ────────────────────────────────────────────────────────────────
-   27. RESPONSIVE — BOTTOM NAVIGATION BAR (Mobile)
+   27. RESPONSIVE — MOBILE & TABLET
    ──────────────────────────────────────────────────────────────── */
 
-/* Bottom nav — hidden on desktop, shown on mobile */
-.bottom-nav {
-    display: none;
-}
+/* Bottom nav & tab switch: hidden by default (desktop) */
+.bottom-nav        { display: none; }
+.mobile-kasir-tabs { display: none; }
+.mobile-more-menu  { display: none; }
 
-.mobile-kasir-tabs {
-    display: none;
-}
-
-/* ── Mobile: < 768px ── */
+/* ══════════════════════════════════════════════════════════════
+   MOBILE  ≤ 767px
+   ══════════════════════════════════════════════════════════════ */
 @media (max-width: 767.98px) {
 
-    /* Hide desktop sidebar */
-    .sidebar {
-        display: none !important;
-    }
+    /* ── 1. Sembunyikan sidebar desktop ── */
+    .sidebar { display: none !important; }
 
-    /* FIX SCROLL BUG 1:
-       overflow-x: hidden on body/html can block touch scroll on mobile browsers.
-       Use 'clip' instead — it clips visually but does NOT create a scroll-blocking context. */
-    html {
-        overflow-x: clip;
-    }
-    body {
-        overflow-x: clip;
+    /* ── 2. KUNCI SCROLL: body = satu-satunya scroller ──
+       main-content TIDAK boleh punya overflow-y sendiri
+       karena akan bentrok dgn body scroll → semua nyangkut */
+    html, body {
+        overflow-x: hidden;
+        overflow-y: auto !important;
+        height: auto !important;
         -webkit-overflow-scrolling: touch;
-        overscroll-behavior-y: auto;
     }
 
-    /* Main content: natural full-page scroll on mobile */
     .main-content {
         margin-left: 0 !important;
         padding: 10px 12px 80px 12px !important;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-        overscroll-behavior-y: contain;
+        overflow: visible !important;
+        min-height: auto !important;
     }
 
-    /* App header compact on mobile */
+    /* ── 3. App Header kompak ── */
     .app-header {
         padding: 8px 12px !important;
         margin-bottom: 12px !important;
+        position: sticky;
+        top: 0;
+        z-index: 900;
     }
     .live-clock, .version-tag { display: none !important; }
-    #btn-logout { font-size: 0 !important; padding: 6px 8px !important; gap: 0 !important; }
+    #btn-logout {
+        font-size: 0 !important;
+        padding: 6px 8px !important;
+        gap: 0 !important;
+    }
     #btn-logout i { font-size: 0.9rem !important; }
 
-    /* ── BOTTOM NAVIGATION BAR ── */
+    /* ── 4. BOTTOM NAVIGATION BAR ── */
     .bottom-nav {
         display: flex !important;
         position: fixed;
@@ -1178,21 +1177,9 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
         padding: 8px 4px 6px 4px;
         position: relative;
     }
-
-    .bnav-item i {
-        font-size: 1.1rem;
-        transition: all var(--t-fast);
-    }
-
-    .bnav-item.active {
-        color: var(--accent);
-    }
-
-    .bnav-item.active i {
-        color: var(--accent);
-        transform: translateY(-1px);
-    }
-
+    .bnav-item i { font-size: 1.1rem; }
+    .bnav-item.active { color: var(--accent); }
+    .bnav-item.active i { color: var(--accent); transform: translateY(-1px); }
     .bnav-item.active::before {
         content: '';
         position: absolute;
@@ -1203,23 +1190,21 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
         border-radius: 0 0 4px 4px;
     }
 
-    /* ── MOBILE MORE MENU (Bottom Sheet) ── */
+    /* ── 5. MOBILE MORE BOTTOM SHEET ── */
     .mobile-more-menu {
         display: none;
         position: fixed;
         inset: 0;
         z-index: 1200;
     }
-    .mobile-more-menu.open {
-        display: block;
-    }
+    .mobile-more-menu.open { display: block; }
 
     .mobile-more-backdrop {
         position: absolute;
         inset: 0;
         background: rgba(15,23,42,0.4);
         backdrop-filter: blur(2px);
-        animation: fadeIn 0.2s ease;
+        animation: fadeInMobile 0.2s ease;
     }
 
     .mobile-more-sheet {
@@ -1229,14 +1214,14 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
         border-radius: 20px 20px 0 0;
         padding: 12px 20px 32px 20px;
         box-shadow: 0 -8px 32px rgba(15,23,42,0.15);
-        animation: slideUp 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        animation: slideUpMobile 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    @keyframes slideUp {
+    @keyframes slideUpMobile {
         from { transform: translateY(100%); }
         to   { transform: translateY(0); }
     }
-    @keyframes fadeIn {
+    @keyframes fadeInMobile {
         from { opacity: 0; }
         to   { opacity: 1; }
     }
@@ -1277,7 +1262,6 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
         color: var(--text-secondary);
         transition: all var(--t-fast);
     }
-
     .mobile-more-item:active .mobile-more-icon {
         background: var(--accent-dim);
         border-color: var(--accent);
@@ -1285,7 +1269,7 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
         transform: scale(0.95);
     }
 
-    /* ── MOBILE KASIR TAB SWITCH ── */
+    /* ── 6. KASIR TAB SWITCH (Produk | Keranjang) ── */
     .mobile-kasir-tabs {
         display: flex !important;
         background: var(--bg-elevated);
@@ -1311,9 +1295,7 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
         align-items: center;
         justify-content: center;
         gap: 6px;
-        position: relative;
     }
-
     .mktab.active {
         background: var(--bg-surface);
         color: var(--text-primary);
@@ -1328,169 +1310,120 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
         border-radius: 100px;
         min-width: 16px;
         height: 16px;
-        display: inline-flex;
+        display: none;
         align-items: center;
         justify-content: center;
         padding: 0 4px;
     }
 
-    .mktab-badge[data-count="0"],
-    .mktab-badge:empty {
-        display: none;
-    }
+    /* ── 7. BEBASKAN SEMUA NESTED SCROLL CONTAINER ──
+       Prinsip: di mobile, BODY yang scroll semuanya.
+       Semua elemen dengan max-height + overflow = scroll nyangkut.
+       Bebaskan semua agar body bisa scroll lancar. */
 
-    /* FIX SCROLL BUG 2:
-       overflow-y: visible is WRONG — it lets scroll events escape the container,
-       causing the 'stuck scroll' bug. Use 'unset' to let content flow naturally
-       and let the main-content handle all scrolling. */
+    /* Panel kasir kiri & kanan */
     .kasir-left-panel,
     .kasir-right-panel {
         height: auto !important;
         max-height: none !important;
-        overflow: unset !important;
-        overflow-y: unset !important;
+        overflow: visible !important;
         padding-right: 0 !important;
         padding-left: 0 !important;
     }
 
-    /* FIX SCROLL BUG 3:
-       The row had inline style height: calc(100vh - 96px) which locks the container height.
-       Force it to auto height on mobile. */
-    #panel-kasir .row {
+    /* Row kasir (ada inline style height yg di-override via JS) */
+    #panel-kasir .row,
+    #kasir-main-row {
         height: auto !important;
-        min-height: unset !important;
         overflow: visible !important;
     }
 
-    /* Cart rail on mobile: no fixed height */
+    /* Cart rail */
     .cart-rail {
         height: auto !important;
-        border-radius: 12px !important;
         overflow: visible !important;
     }
 
-    /* Cart items: small internal scroll is OK but needs touch support */
+    /* Cart items: satu-satunya nested scroll yang diizinkan */
     #cart-items {
-        max-height: 260px;
+        max-height: 240px;
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
-        overscroll-behavior-y: contain;
     }
 
-    /* ──────────────────────────────────────────────────────────────
-       FIX SCROLL NYANGKUT — ROOT CAUSE:
-       Multiple nested scroll containers (max-height + overflow-y:auto)
-       inside panels. On mobile, ALL internal scroll containers must be
-       released so the single page scroll handles everything naturally.
-       ────────────────────────────────────────────────────────────── */
-
-    /* 1. Catalog product grid — release fixed height */
+    /* Katalog produk */
     #katalog-produk {
         max-height: none !important;
-        overflow-y: visible !important;
         overflow: visible !important;
     }
 
-    /* 2. Customer suggestion box — OK to keep scroll (it's a dropdown) */
+    /* Suggestion dropdown (tetap scroll karena dropdown) */
     .cust-suggest-box {
         max-height: 180px;
-        overflow-y: auto;
         -webkit-overflow-scrolling: touch;
     }
 
-    /* 3. Laporan table scroll area — release fixed height */
+    /* Tabel */
     .table-responsive {
         overflow-x: auto;
         overflow-y: visible !important;
         max-height: none !important;
-        -webkit-overflow-scrolling: touch;
     }
 
-    /* 4. Kanban body columns — release fixed height, stack vertically */
+    /* Kanban */
     .kanban-body {
         max-height: none !important;
-        min-height: unset !important;
-        overflow-y: visible !important;
+        min-height: 0 !important;
         overflow: visible !important;
     }
-
-    /* 5. Chart containers — release fixed height */
-    .chart-card [style*="height:260px"],
-    .chart-card > div[style] {
-        height: 200px !important;
-    }
-
-    /* 6. Stat label scroll area in Laporan — release */
-    [style*="max-height:480px"] {
-        max-height: none !important;
-        overflow-y: visible !important;
-    }
-
-    /* 7. Container baris per lembar (finishing potong) — keep small scroll */
-    #container-baris-per-lembar {
-        max-height: 120px;
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    /* 8. Kanban board — stack columns vertically on mobile */
     .kanban-board .col-md-4 {
         width: 100% !important;
         max-width: 100% !important;
         flex: 0 0 100% !important;
     }
 
-    /* 9. Sidebar menu internal scroll — irrelevant on mobile (sidebar hidden) */
-    .sidebar-menu { overflow: unset; }
+    /* Laporan table area */
+    [style*="max-height:480px"],
+    [style*="max-height: 480px"] {
+        max-height: none !important;
+        overflow: visible !important;
+    }
 
-    /* Stat cards stack on mobile */
-    .stat-card-dark { margin-bottom: 8px; }
-
-    /* Filter bar stacks naturally */
-    .filter-bar .row { gap: 8px; }
-
-    /* Premium card padding reduced */
+    /* Premium card */
     .premium-card { padding: 14px !important; }
 
-    /* Modal full-screen friendly */
+    /* Modal */
     .modal-dialog { margin: 12px !important; }
+
+    /* Stat cards */
+    .stat-card-dark { margin-bottom: 8px; }
+
+    /* Filter bar */
+    .filter-bar .row { gap: 8px; }
 }
 
-
-/* ── Tablet: 768px – 991px ── */
+/* ══════════════════════════════════════════════════════════════
+   TABLET  768px – 991px
+   ══════════════════════════════════════════════════════════════ */
 @media (min-width: 768px) and (max-width: 991.98px) {
-
-    .sidebar {
-        --sidebar-w: 60px;
-        --sidebar-w-open: 220px;
-    }
-
-    .main-content {
-        margin-left: 60px !important;
-        padding: 14px 18px !important;
-    }
-
-    /* Kasir: stack panels vertically on tablet too */
-    .kasir-left-panel {
-        height: auto !important;
-        padding-right: 0 !important;
-    }
-    .kasir-right-panel {
-        height: auto !important;
-        padding-left: 0 !important;
-    }
+    .sidebar { --sidebar-w: 60px; --sidebar-w-open: 220px; }
+    .main-content { margin-left: 60px !important; padding: 14px 18px !important; }
+    .kasir-left-panel { height: auto !important; padding-right: 0 !important; }
+    .kasir-right-panel { height: auto !important; padding-left: 0 !important; }
     .cart-rail { height: auto !important; }
     #cart-items { max-height: 300px; }
     #panel-kasir .row { height: auto !important; }
-
-    /* Bottom nav hidden on tablet */
-    .bottom-nav { display: none !important; }
-    .mobile-kasir-tabs { display: none !important; }
-}
-
-/* ── Desktop: ≥ 992px — TIDAK ADA PERUBAHAN ── */
-@media (min-width: 992px) {
     .bottom-nav { display: none !important; }
     .mobile-kasir-tabs { display: none !important; }
     .mobile-more-menu { display: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   DESKTOP  ≥ 992px  — tidak ada perubahan layout
+   ══════════════════════════════════════════════════════════════ */
+@media (min-width: 992px) {
+    .bottom-nav        { display: none !important; }
+    .mobile-kasir-tabs { display: none !important; }
+    .mobile-more-menu  { display: none !important; }
+}
+
