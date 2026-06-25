@@ -1,0 +1,1829 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Putra Print</title>
+    <meta name="description" content="Sistem Kasir Digital Premium untuk Putra Print — Solusi Cetak Terbaik & Cepat.">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;1,14..32,400&display=swap" rel="stylesheet">
+
+    <!-- Libs -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- App Styles -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         SIDEBAR — ICON RAIL
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="sidebar no-print">
+
+        <!-- Brand -->
+        <div class="sidebar-brand">
+            <img src="logo.png" class="sidebar-logo-img" alt="Putra Print">
+            <div class="sidebar-brand-text">
+                <span class="sidebar-brand-tagline">Sistem Kasir POS</span>
+            </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="sidebar-menu">
+
+            <!-- Operasional (Public) -->
+            <a href="index.html" class="menu-item" id="menu-kasir">
+                <i class="fa-solid fa-cash-register fa-fw"></i>
+                <span class="menu-text">Kasir</span>
+            </a>
+            <a href="index.html" class="menu-item" id="menu-order">
+                <i class="fa-solid fa-folder-open fa-fw"></i>
+                <span class="menu-text">Order</span>
+            </a>
+            <a href="index.html" class="menu-item" id="menu-pelanggan">
+                <i class="fa-solid fa-users fa-fw"></i>
+                <span class="menu-text">Pelanggan</span>
+            </a>
+
+            <div class="sidebar-divider"></div>
+            
+            <a href="#" class="menu-item active" id="menu-pembukuan" onclick="switchTab('panel-keuangan', this)">
+                <i class="fa-solid fa-book-open fa-fw"></i>
+                <span class="menu-text">Pembukuan</span>
+            </a>
+
+            <div class="sidebar-divider"></div>
+
+            <!-- Admin (PIN Protected) -->
+            <a href="index.html" class="menu-item" id="menu-dashboard">
+                <i class="fa-solid fa-chart-pie fa-fw"></i>
+                <span class="menu-text">Dashboard</span>
+            </a>
+            <a href="index.html" class="menu-item" id="menu-produk">
+                <i class="fa-solid fa-boxes-stacked fa-fw"></i>
+                <span class="menu-text">Produk</span>
+            </a>
+            <a href="index.html" class="menu-item" id="menu-laporan">
+                <i class="fa-solid fa-chart-line fa-fw"></i>
+                <span class="menu-text">Laporan</span>
+            </a>
+
+            <a href="index.html" class="menu-item" id="menu-pengaturan">
+                <i class="fa-solid fa-gears fa-fw"></i>
+                <span class="menu-text">Pengaturan</span>
+            </a>
+        </div>
+
+        <!-- Copyright Info -->
+        <div class="sidebar-user">
+            <div class="copyright-content">
+                <div class="copy-main">&copy; 2026 Putra Print</div>
+                <div class="copy-sub">Developed by Bagus Prayoga</div>
+            </div>
+        </div>
+
+    </div><!-- /sidebar -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+         BOTTOM NAVIGATION — Mobile Only (hidden on desktop)
+         ═══════════════════════════════════════════════════════════ -->
+    <nav class="bottom-nav no-print" id="bottom-nav">
+        <a href="#" class="bnav-item active" id="bnav-kasir" onclick="mobileNavSwitch('panel-kasir', 'menu-kasir', this); return false;">
+            <i class="fa-solid fa-cash-register"></i>
+            <span>Kasir</span>
+        </a>
+        <a href="#" class="bnav-item" id="bnav-order" onclick="mobileNavSwitch('panel-order', 'menu-order', this); return false;">
+            <i class="fa-solid fa-folder-open"></i>
+            <span>Order</span>
+        </a>
+        <a href="#" class="bnav-item" id="bnav-pelanggan" onclick="mobileNavSwitch('panel-pelanggan', 'menu-pelanggan', this); return false;">
+            <i class="fa-solid fa-users"></i>
+            <span>Pelanggan</span>
+        </a>
+        <a href="#" class="bnav-item" id="bnav-dashboard" onclick="mobilePinSwitch('panel-dashboard', 'menu-dashboard', this); return false;">
+            <i class="fa-solid fa-chart-pie"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="#" class="bnav-item" id="bnav-more" onclick="toggleMobileMore(this); return false;">
+            <i class="fa-solid fa-ellipsis"></i>
+            <span>Lainnya</span>
+        </a>
+    </nav>
+
+    <!-- Mobile More Menu (Produk, Laporan, Pengaturan, Logout) -->
+    <div class="mobile-more-menu no-print" id="mobile-more-menu">
+        <div class="mobile-more-backdrop" onclick="closeMobileMore()"></div>
+        <div class="mobile-more-sheet">
+            <div class="mobile-more-handle"></div>
+            <div class="mobile-more-grid">
+                <a href="#" class="mobile-more-item" onclick="mobilePinSwitch('panel-produk','menu-produk', document.getElementById('bnav-more')); closeMobileMore(); return false;">
+                    <div class="mobile-more-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+                    <span>Produk</span>
+                </a>
+                <a href="#" class="mobile-more-item" onclick="mobilePinSwitch('panel-laporan','menu-laporan', document.getElementById('bnav-more')); closeMobileMore(); return false;">
+                    <div class="mobile-more-icon"><i class="fa-solid fa-chart-line"></i></div>
+                    <span>Laporan</span>
+                </a>
+                <a href="#" class="mobile-more-item" onclick="mobilePinSwitch('panel-pengaturan','menu-pengaturan', document.getElementById('bnav-more')); closeMobileMore(); return false;">
+                    <div class="mobile-more-icon"><i class="fa-solid fa-gears"></i></div>
+                    <span>Pengaturan</span>
+                </a>
+                <a href="#" class="mobile-more-item" onclick="doLogout(); return false;">
+                    <div class="mobile-more-icon" style="background:var(--rose-dim);"><i class="fa-solid fa-right-from-bracket" style="color:var(--rose);"></i></div>
+                    <span style="color:var(--rose);">Logout</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+         MAIN CONTENT
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="main-content no-print">
+
+        <!-- App Header -->
+        <div class="app-header">
+            <div class="d-flex align-items-center gap-3">
+                <h4 class="m-0 fw-bold" id="page-title">Kasir</h4>
+                <span class="badge" id="sync-status">
+                    <i class="fa-solid fa-cloud"></i> Connected
+                </span>
+            </div>
+            <div class="header-right">
+                <span class="live-clock" id="live-clock">--:--:--</span>
+                <span id="header-user-info" class="d-flex align-items-center gap-2 me-3" style="font-size:0.85rem; font-weight:500;">
+                    <!-- Diisi dari script.js -->
+                </span>
+                <!-- <span class="version-tag">v10.0</span> -->
+                <button id="btn-logout" onclick="doLogout()" title="Keluar" style="background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.25); color:#f43f5e; border-radius:8px; padding:4px 12px; font-size:0.78rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;" onmouseover="this.style.background='rgba(244,63,94,0.22)'" onmouseout="this.style.background='rgba(244,63,94,0.12)'">
+                    <i class="fa-solid fa-right-from-bracket"></i> Logout
+                </button>
+            </div>
+        </div>
+
+        <!-- ─── ALL TAB PANELS ─────────────────────────────────── -->
+        <div id="tab-panels">
+
+
+            <!-- ══════════════════════════════════════════════
+                 PANEL: KASIR
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-kasir" class="tab-pane-custom" style="display:none;">
+
+                <!-- ── MOBILE TAB SWITCH (hanya muncul di HP, disembunyikan di desktop) ── -->
+                <div class="mobile-kasir-tabs d-lg-none" id="mobile-kasir-tabs">
+                    <button class="mktab active" id="mktab-produk" onclick="switchMobileKasirTab('produk')">
+                        <i class="fa-solid fa-grid-2 me-1"></i> Produk
+                    </button>
+                    <button class="mktab" id="mktab-keranjang" onclick="switchMobileKasirTab('keranjang')">
+                        <i class="fa-solid fa-cart-shopping me-1"></i> Keranjang
+                        <span class="mktab-badge" id="mktab-badge">0</span>
+                    </button>
+                </div>
+
+                <div class="row g-3 m-0 p-0" id="kasir-main-row" style="height: calc(100vh - 96px);">
+
+                    <!-- LEFT: Product Selection & Order Building -->
+                    <div class="col-lg-8 kasir-left-panel" id="kasir-col-produk">
+
+                        <!-- Customer Info Card -->
+                        <div class="premium-card">
+                            <div class="section-label"><i class="fa-solid fa-user-tag"></i> Informasi Pelanggan</div>
+                            <div class="row g-3">
+                                <div class="col-md-6 suggestion-holder">
+                                    <div class="d-flex align-items-center gap-2 mb-1" style="height:22px;">
+                                        <label class="form-label m-0">Nama Pelanggan</label>
+                                        <span id="cust-status-badge" class="badge bg-secondary small" style="display:none; font-size:0.65rem;">BARU</span>
+                                    </div>
+                                    <input type="text" id="cust-name" class="form-control"
+                                        placeholder="Ketik nama customer..."
+                                        oninput="cariPelangganLama()" autocomplete="off">
+                                    <div id="suggestion-box" class="cust-suggest-box"></div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="d-flex align-items-center mb-1" style="height:22px;">
+                                        <label class="form-label m-0">No. WhatsApp</label>
+                                    </div>
+                                    <input type="text" id="cust-phone" class="form-control"
+                                        placeholder="Contoh: 083112347800">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Catalog Card -->
+                        <div class="premium-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="section-label mb-0" style="font-size:0.68rem; letter-spacing:0.8px; text-transform:uppercase; color:var(--text-muted);">
+                                    <i class="fa-solid fa-grid-2"></i> Tambah Pesanan
+                                </div>
+                                <div class="search-wrapper" style="width:200px;">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <input type="text" id="search-product-input" class="form-control form-control-sm"
+                                        placeholder="Cari produk..." oninput="jalankanPencarianProduk()">
+                                </div>
+                            </div>
+
+                            <!-- Category Pills -->
+                            <div class="d-flex gap-2 flex-wrap mb-3" id="category-bar">
+                                <button class="cat-pill active" onclick="filterKategori('SEMUA')">Semua</button>
+                                <button class="cat-pill" onclick="filterKategori('Print &amp; Copy')">Print &amp; Copy</button>
+                                <button class="cat-pill" onclick="filterKategori('A3+')">A3+</button>
+                                <button class="cat-pill" onclick="filterKategori('Large Format')">Large Format</button>
+                                <button class="cat-pill" onclick="filterKategori('Finishing')">Finishing</button>
+                                <button class="cat-pill" onclick="filterKategori('Tambahan')">Tambahan</button>
+                            </div>
+
+                            <!-- Product Grid -->
+                            <div class="row row-cols-2 row-cols-md-4 g-2 mb-3" id="katalog-produk"
+                                style="max-height: 310px; overflow-y: auto;"></div>
+
+                            <!-- Custom Job Toggle -->
+                            <div class="mb-3">
+                                <button type="button" class="btn btn-sm btn-outline-dark fw-bold"
+                                    onclick="toggleFormCustomJob()">
+                                    <i class="fa-solid fa-square-plus me-1"></i> Custom Job / Jasa Desain / Tambahan
+                                </button>
+                            </div>
+
+                            <!-- Custom Job Form (Hidden by default) -->
+                            <div class="p-3 rounded-3 mb-3" id="custom-job-box" style="display:none; border-left: 3px solid var(--text-muted) !important;">
+                                <div class="section-label"><i class="fa-solid fa-wand-magic-sparkles"></i> Input Pesanan Kustom</div>
+                                <div class="row g-2 align-items-end">
+                                    <div class="col-md-5">
+                                        <label class="form-label">Nama Jasa / Pesanan Kustom</label>
+                                        <input type="text" id="custom-job-nama" class="form-control form-control-sm"
+                                            placeholder="Contoh: Jasa Desain Kilat / Ongkir">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Harga Tembakan (Rp)</label>
+                                        <input type="number" id="custom-job-harga" class="form-control form-control-sm" placeholder="0">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label">Qty</label>
+                                        <input type="number" id="custom-job-qty" class="form-control form-control-sm" value="1" min="1">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="button" class="btn btn-primary btn-sm w-100 fw-bold py-2"
+                                            onclick="tambahCustomJobKeKeranjang()">Masukkan</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Product Specification Box (Hidden until product selected) -->
+                            <div id="spesifikasi-box" style="display:none;">
+                                <div class="section-label">
+                                    <i class="fa-solid fa-sliders"></i> Detail Pesanan:
+                                    <span id="selected-product-title" class="text-primary fw-bold"></span>
+                                </div>
+                                <div class="row g-3">
+                                    <div class="col-md-3" id="box-pilihan-varian">
+                                        <label class="form-label">Bahan / Varian</label>
+                                        <select class="form-select form-select-sm" id="prod-varian"
+                                            onchange="hitungPreviewHargaSistem()"></select>
+                                    </div>
+                                    <div class="col-md-2" id="box-ukuran-panjang" style="display:none;">
+                                        <label class="form-label">Panjang (m)</label>
+                                        <input type="number" id="prod-panjang" class="form-control form-control-sm"
+                                            value="1" min="0.1" step="0.1" oninput="hitungPreviewHargaSistem()">
+                                    </div>
+                                    <div class="col-md-2" id="box-ukuran-lebar" style="display:none;">
+                                        <label class="form-label">Lebar (m)</label>
+                                        <input type="number" id="prod-lebar" class="form-control form-control-sm"
+                                            value="1" min="0.1" step="0.1" oninput="hitungPreviewHargaSistem()">
+                                    </div>
+                                    <div class="col-md-2" id="box-jumlah-qty">
+                                        <label class="form-label">Qty (Pcs)</label>
+                                        <input type="number" id="prod-qty" class="form-control form-control-sm"
+                                            value="1" min="1"
+                                            oninput="generateBarisPotongDinamis(); hitungPreviewHargaSistem();">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label">Harga Satuan (Rp)</label>
+                                        <input type="number" id="prod-harga-manual"
+                                            class="form-control form-control-sm fw-bold"
+                                            style="color: var(--accent);"
+                                            value="0" oninput="hitungPreviewHargaManual()">
+                                    </div>
+                                    <div class="col-md-2 align-self-end text-end">
+                                        <div class="form-label">Subtotal</div>
+                                        <div class="fw-bold" style="font-size:1rem; color:var(--rose);"
+                                            id="preview-hitung-sistem-text">Rp 0</div>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3 mt-1 align-items-end">
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch mt-2" id="box-toggle-potong" style="display:none;">
+                                            <input class="form-check-input" type="checkbox"
+                                                id="aktifkan-jasa-potong" onchange="toggleFormPotongFisik()">
+                                            <label class="form-check-label small fw-bold" for="aktifkan-jasa-potong"
+                                                style="color:var(--rose);">✂️ Tambah Finishing Potong</label>
+                                        </div>
+                                        <div class="mt-2 p-2 rounded" id="sub-form-potong-kalkulator" style="display:none;">
+                                            <div id="container-baris-per-lembar" style="max-height:130px; overflow-y:auto;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <button class="btn btn-primary fw-bold px-4 py-2"
+                                            onclick="tambahKeKeranjang()">
+                                            <i class="fa-solid fa-cart-plus me-1"></i> Tambah ke Keranjang
+                                        </button>
+                                        <button class="btn btn-dark fw-bold px-4 py-2 ms-2"
+                                            onclick="document.getElementById('spesifikasi-box').style.display='none'">
+                                            Batal
+                                        </button>
+                                    </div>
+                                </div>
+                            </div><!-- /spesifikasi-box -->
+
+                        </div><!-- /catalog card -->
+                    </div><!-- /col-lg-8 -->
+
+
+                    <!-- RIGHT: Order Rail / Cart -->
+                    <div class="col-lg-4 kasir-right-panel" id="kasir-col-keranjang" style="padding-left:6px;">
+                        <div class="cart-rail">
+
+                            <!-- Cart Header -->
+                            <div class="cart-rail-header">
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="fw-bold" style="color:var(--text-primary); font-size:0.9rem;">Keranjang</span>
+                                    <span class="badge" id="cart-badge-count">0</span>
+                                </div>
+                                <button class="btn btn-sm border-0 p-0" onclick="clearDraftKasir()"
+                                    title="Kosongkan Keranjang" style="color:var(--rose);">
+                                    <i class="fa-solid fa-trash-can"></i>
+                                </button>
+                            </div>
+
+                            <!-- Cart Items List -->
+                            <div id="cart-items">
+                                <p class="text-muted text-center py-5" style="font-size:0.85rem;">
+                                    <i class="fa-solid fa-cart-shopping d-block mb-2" style="font-size:1.5rem; opacity:0.3;"></i>
+                                    Keranjang masih kosong
+                                </p>
+                            </div>
+
+                            <!-- Cart Footer / Payment -->
+                            <div class="cart-footer">
+                                <hr style="margin: 0 0 10px 0;">
+
+                                <!-- Subtotal & Diskon -->
+                                <div class="row g-2 mb-1" style="font-size:0.82rem;">
+                                    <div class="col-6">
+                                        <div style="color:var(--text-secondary);">Subtotal</div>
+                                        <div class="fw-bold" id="cart-total-mock">Rp 0</div>
+                                    </div>
+                                    <div class="col-6 text-end">
+                                        <div style="color:var(--text-secondary);">Diskon (%)</div>
+                                        <div class="d-flex justify-content-end align-items-center gap-1">
+                                            <input type="number" id="payment-diskon" class="form-control form-control-sm text-center px-1 py-0" value="0" min="0" max="100" style="width:40px; height:22px; border-color:var(--accent);" oninput="hitungSisaTagihan()">
+                                            <span class="fw-bold" style="color:var(--rose); font-size:0.75rem;" id="cart-diskon-nominal">- Rp 0</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr style="margin: 6px 0;">
+
+                                <!-- Total & Dibayar -->
+                                <div class="row g-2 mb-2 align-items-end">
+                                    <div class="col-5">
+                                        <div style="font-weight:700; font-size:0.85rem;">Total</div>
+                                        <div style="color:var(--rose); font-weight:700; font-size:1.05rem;" id="cart-total">Rp 0</div>
+                                    </div>
+                                    <div class="col-7">
+                                        <div class="d-flex justify-content-between align-items-end mb-1">
+                                            <label class="form-label mb-0" style="font-size:0.75rem;">Dibayar</label>
+                                            <div style="font-size:0.7rem; color:var(--text-secondary);">Sisa: <span class="fw-bold" id="payment-sisa" style="color:var(--rose);">Rp 0</span></div>
+                                        </div>
+                                        <input type="number" id="payment-dp" class="form-control form-control-sm fw-bold text-end mb-1" style="color:var(--emerald); height:26px; padding:2px 6px;" value="0" oninput="hitungSisaTagihan()">
+                                        <div class="d-flex flex-wrap gap-1 no-print">
+                                            <button type="button" class="btn-instan flex-fill" style="font-size:0.65rem; padding:2px;" onclick="setNominalInstan('pas')">Pas</button>
+                                            <button type="button" class="btn-instan flex-fill" style="font-size:0.65rem; padding:2px;" onclick="setNominalInstan(20000)">20k</button>
+                                            <button type="button" class="btn-instan flex-fill" style="font-size:0.65rem; padding:2px;" onclick="setNominalInstan(50000)">50k</button>
+                                            <button type="button" class="btn-instan flex-fill" style="font-size:0.65rem; padding:2px;" onclick="setNominalInstan(100000)">100k</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Metode Bayar -->
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <label class="form-label mb-0 text-nowrap" style="font-size:0.75rem;">Metode:</label>
+                                    <select id="payment-method" class="form-select form-select-sm fw-bold py-1" style="font-size:0.75rem; color:var(--text-dark); height: 28px;">
+                                        <option value="Tunai">💵 Tunai (Laci Kasir)</option>
+                                        <option value="TF">🏦 Transfer Bank (TF)</option>
+                                        <option value="QR">📱 QRIS</option>
+                                    </select>
+                                </div>
+
+                                <!-- Action Buttons -->
+                                <div class="row g-1 mb-1">
+                                    <div class="col-4">
+                                        <button id="btn-save-transaksi"
+                                            class="btn btn-outline-primary w-100 h-100 py-1 fw-bold"
+                                            style="font-size:0.75rem;"
+                                            onclick="simpanTransaksi('SAJA')">
+                                            <i class="fa-solid fa-floppy-disk d-block mb-1"></i> Simpan
+                                        </button>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="dropdown w-100 h-100">
+                                            <button class="btn btn-dark w-100 h-100 py-1 fw-bold dropdown-toggle" style="font-size:0.75rem;" type="button" data-bs-toggle="dropdown">
+                                                <i class="fa-solid fa-file-invoice d-block mb-1"></i> Draft
+                                            </button>
+                                            <ul class="dropdown-menu shadow">
+                                                <li><a class="dropdown-item" style="font-size:0.85rem;" href="#" onclick="kirimDraftWhatsapp()">
+                                                    <i class="fa-brands fa-whatsapp me-2" style="color:var(--emerald);"></i>Kirim ke WA</a></li>
+                                                <li><a class="dropdown-item" style="font-size:0.85rem;" href="#" onclick="simpanDraftPNG()">
+                                                    <i class="fa-solid fa-image me-2" style="color:var(--blue);"></i>Unduh PNG</a></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <button id="btn-save-print"
+                                            class="btn btn-danger w-100 h-100 py-1 fw-bold"
+                                            style="font-size:0.75rem;"
+                                            onclick="simpanTransaksi('PRINT')">
+                                            <i class="fa-solid fa-money-bill-wave d-block mb-1"></i> Bayar
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div><!-- /cart-footer -->
+                        </div><!-- /cart-rail -->
+                    </div><!-- /col-lg-4 -->
+
+                </div>
+            </div><!-- /panel-kasir -->
+
+
+            <!-- ══════════════════════════════════════════════
+                 PANEL: DASHBOARD
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-dashboard" class="tab-pane-custom" style="display:none;">
+
+                <!-- Date Filter -->
+                <div class="premium-card mb-4">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-5">
+                            <div class="section-label"><i class="fa-solid fa-calendar-days"></i> Filter Periode Dashboard</div>
+                            <small style="color:var(--text-muted); font-size:0.78rem;">Semua statistik dan grafik akan sinkron otomatis</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Mulai Tanggal</label>
+                            <input type="date" id="db-start-date" class="form-control form-control-sm fw-bold">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Sampai Tanggal</label>
+                            <input type="date" id="db-end-date" class="form-control form-control-sm fw-bold">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stat Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="stat-card-dark accent-amber">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="stat-icon" style="background:var(--accent-dim);">
+                                    <i class="fa-solid fa-money-bill-trend-up" style="color:var(--accent);"></i>
+                                </div>
+                                <span class="badge" style="background:var(--emerald-dim); color:var(--emerald); border:1px solid rgba(16,185,129,.2); font-size:0.64rem;">REALTIME</span>
+                            </div>
+                            <div class="stat-label">Omset Lunas Periode</div>
+                            <div class="stat-value" id="db-omset">Rp 0</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card-dark accent-blue">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="stat-icon" style="background:var(--blue-dim);">
+                                    <i class="fa-solid fa-boxes-stacked" style="color:var(--blue);"></i>
+                                </div>
+                            </div>
+                            <div class="stat-label">Total Transaksi</div>
+                            <div class="stat-value" id="db-total-order">0</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card-dark accent-rose">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="stat-icon" style="background:var(--orange-dim);">
+                                    <i class="fa-solid fa-spinner fa-spin-pulse" style="color:var(--orange);"></i>
+                                </div>
+                                <span class="badge" style="background:var(--orange-dim); color:var(--orange); border:1px solid rgba(251,146,60,.2); font-size:0.64rem;">ANTREAN</span>
+                            </div>
+                            <div class="stat-label">Sedang Diproses</div>
+                            <div class="stat-value" id="db-proses-order">0</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="stat-card-dark accent-green">
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="stat-icon" style="background:var(--emerald-dim);">
+                                    <i class="fa-solid fa-square-check" style="color:var(--emerald);"></i>
+                                </div>
+                            </div>
+                            <div class="stat-label">Selesai Cetak</div>
+                            <div class="stat-value" id="db-selesai-order">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-7">
+                        <div class="chart-card h-100">
+                            <div class="section-label mb-3">
+                                <i class="fa-solid fa-chart-line" style="color:var(--blue);"></i> Grafik Tren Pendapatan
+                            </div>
+                            <div style="height:260px; position:relative;">
+                                <canvas id="chartPenjualanPutraPrint"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="chart-card h-100">
+                            <div class="section-label mb-3">
+                                <i class="fa-solid fa-fire" style="color:var(--rose);"></i> 5 Produk Terlaris
+                            </div>
+                            <div style="height:260px; position:relative;">
+                                <canvas id="chartProdukTerlarisPutraPrint"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Queue Mini Table -->
+                <div class="premium-card">
+                    <div class="section-label mb-3">
+                        <i class="fa-solid fa-list-check"></i> Daftar Antrean Produksi Aktif
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" style="font-size:0.82rem;">
+                            <thead id="db-table-head">
+                                <tr style="cursor: pointer;">
+                                    <th style="width:25%;" onclick="sortDashboard('notaId')">No. Nota <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                    <th style="width:45%;" onclick="sortDashboard('nama')">Nama Customer <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                    <th style="width:30%;" onclick="sortDashboard('status')">Status Produksi <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody id="db-table-recent"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div><!-- /panel-dashboard -->
+
+
+            <!-- ══════════════════════════════════════════════
+                 PANEL: ORDER MANAGEMENT
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-order" class="tab-pane-custom" style="display:none;">
+                <div class="premium-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="section-label mb-0"><i class="fa-solid fa-folder-tree"></i> Manajemen Alur Kerja Antrean</div>
+                        <div class="btn-group btn-group-sm no-print">
+                            <button class="btn btn-outline-dark active" id="btn-view-table" onclick="window.switchOrderView('table')"><i class="fa-solid fa-list"></i> Table</button>
+                            <button class="btn btn-outline-dark" id="btn-view-kanban" onclick="window.switchOrderView('kanban')"><i class="fa-solid fa-grip"></i> Kanban Board</button>
+                        </div>
+                    </div>
+
+                    <!-- Mini Stats -->
+                    <div class="row g-3 mb-4 no-print">
+                        <div class="col-md-4">
+                            <div class="stat-card-dark accent-rose">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="stat-label">Antrean Pending</div>
+                                        <div class="stat-value" style="font-size:1.3rem;" id="stat-order-pending">0 Nota</div>
+                                    </div>
+                                    <div class="stat-icon" style="background:var(--orange-dim);">
+                                        <i class="fa-solid fa-clock-rotate-left" style="color:var(--orange);"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card-dark" style="border-left:3px solid var(--rose);">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="stat-label">Belum Lunas (DP)</div>
+                                        <div class="stat-value" style="font-size:1.3rem;" id="stat-order-piutang">0 Nota</div>
+                                    </div>
+                                    <div class="stat-icon" style="background:var(--rose-dim);">
+                                        <i class="fa-solid fa-hand-holding-dollar" style="color:var(--rose);"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card-dark accent-green">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <div class="stat-label">Total Selesai</div>
+                                        <div class="stat-value" style="font-size:1.3rem;" id="stat-order-selesai">0 Nota</div>
+                                    </div>
+                                    <div class="stat-icon" style="background:var(--emerald-dim);">
+                                        <i class="fa-solid fa-circle-check" style="color:var(--emerald);"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filter Bar -->
+                    <div class="filter-bar no-print">
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-3 col-12">
+                                <label class="form-label"><i class="fa-solid fa-magnifying-glass me-1"></i> Cari Nota / Pelanggan</label>
+                                <input type="text" id="search-order-dynamic" class="form-control form-control-sm"
+                                    placeholder="Ketik nota / nama..." oninput="renderTableAntrean()">
+                            </div>
+                            <div class="col-md-4 col-12">
+                                <label class="form-label"><i class="fa-solid fa-calendar-days me-1"></i> Filter Rentang Tanggal</label>
+                                <div class="d-flex align-items-center gap-2 rounded px-2 py-1"
+                                    style="background:var(--bg-elevated); border:1px solid var(--border-default); height:33px;">
+                                    <span style="font-size:0.72rem; color:var(--text-muted);">Mulai:</span>
+                                    <input type="date" id="filter-tanggal-mulai" class="border-0 bg-transparent"
+                                        style="outline:none; font-size:0.72rem; cursor:pointer; padding:0; color:var(--text-primary);">
+                                    <span style="font-size:0.72rem; color:var(--text-muted);">s/d</span>
+                                    <input type="date" id="filter-tanggal-selesai" class="border-0 bg-transparent"
+                                        style="outline:none; font-size:0.72rem; cursor:pointer; padding:0; color:var(--text-primary);">
+                                </div>
+                            </div>
+                            <div class="col-md-2 col-6">
+                                <label class="form-label"><i class="fa-solid fa-bars-progress me-1"></i> Produksi</label>
+                                <select id="filter-status-order" class="form-select form-select-sm fw-bold"
+                                    onchange="renderTableAntrean()">
+                                    <option value="">Semua Status</option>
+                                    <option value="PENDING">PENDING</option>
+                                    <option value="PROSES">PROSES</option>
+                                    <option value="SELESAI">SELESAI</option>
+                                </select>
+                            </div>
+                            <div class="col-md-2 col-6">
+                                <label class="form-label"><i class="fa-solid fa-money-bill-wave me-1"></i> Pembayaran</label>
+                                <select id="filter-pembayaran-order" class="form-select form-select-sm fw-bold"
+                                    onchange="renderTableAntrean()">
+                                    <option value="">Semua Pembayaran</option>
+                                    <option value="LUNAS">LUNAS</option>
+                                    <option value="BELUM_LUNAS">BELUM LUNAS (DP)</option>
+                                </select>
+                            </div>
+                            <div class="col-md-1 col-12 text-end">
+                                <button class="btn btn-sm btn-outline-danger w-100 fw-bold d-flex align-items-center justify-content-center"
+                                    onclick="window.resetFilterOrderan()" style="height:33px;">
+                                    <i class="fa-solid fa-arrow-rotate-left me-1"></i> Reset
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VIEW: ORDER TABLE -->
+                    <div id="order-view-table">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-premium align-middle small">
+                                <thead>
+                                    <tr>
+                                        <th onclick="sortTableOrder('notaId')" style="cursor:pointer;">No Nota ↕</th>
+                                        <th onclick="sortTableOrder('tanggal')" style="cursor:pointer;">Tanggal ↕</th>
+                                        <th onclick="sortTableOrder('nama')" style="cursor:pointer;">Customer ↕</th>
+                                        <th onclick="sortTableOrder('totalBelanja')" style="cursor:pointer;">Total ↕</th>
+                                        <th onclick="sortTableOrder('dpMasuk')" style="cursor:pointer;">Terbayar ↕</th>
+                                        <th onclick="sortTableOrder('sisaTagihan')" style="cursor:pointer;">Sisa ↕</th>
+                                        <th>Pembayaran</th>
+                                        <th>Progress</th>
+                                        <th>Detail</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="table-antrean"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- VIEW: KANBAN BOARD -->
+                    <div id="order-view-kanban" style="display:none; background:var(--bg-surface); padding:1rem; border-radius:12px;">
+                        <div class="row g-3 kanban-board">
+                            <!-- PENDING -->
+                            <div class="col-md-4">
+                                <div class="kanban-column" style="background:#f1f5f9; border-radius:8px; border:1px solid #e2e8f0; height:100%;">
+                                    <div class="kanban-header p-3 pb-2" style="border-bottom:2px solid var(--orange);">
+                                        <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-clock-rotate-left" style="color:var(--orange);"></i> PENDING <span class="badge bg-secondary rounded-pill float-end" id="kanban-count-pending">0</span></h6>
+                                    </div>
+                                    <div class="kanban-body p-2" id="kanban-pending" ondragover="allowDrop(event)" ondrop="dropKanban(event, 'PENDING')" style="min-height: 500px; max-height: 70vh; overflow-y: auto;">
+                                        <!-- Cards Rendered Here -->
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- PROSES -->
+                            <div class="col-md-4">
+                                <div class="kanban-column" style="background:#f1f5f9; border-radius:8px; border:1px solid #e2e8f0; height:100%;">
+                                    <div class="kanban-header p-3 pb-2" style="border-bottom:2px solid var(--blue);">
+                                        <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-spinner" style="color:var(--blue);"></i> PROSES <span class="badge bg-secondary rounded-pill float-end" id="kanban-count-proses">0</span></h6>
+                                    </div>
+                                    <div class="kanban-body p-2" id="kanban-proses" ondragover="allowDrop(event)" ondrop="dropKanban(event, 'PROSES')" style="min-height: 500px; max-height: 70vh; overflow-y: auto;">
+                                        <!-- Cards Rendered Here -->
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- SELESAI -->
+                            <div class="col-md-4">
+                                <div class="kanban-column" style="background:#f1f5f9; border-radius:8px; border:1px solid #e2e8f0; height:100%;">
+                                    <div class="kanban-header p-3 pb-2" style="border-bottom:2px solid var(--emerald);">
+                                        <h6 class="fw-bold m-0 text-dark"><i class="fa-solid fa-circle-check" style="color:var(--emerald);"></i> SELESAI <span class="badge bg-secondary rounded-pill float-end" id="kanban-count-selesai">0</span></h6>
+                                    </div>
+                                    <div class="kanban-body p-2" id="kanban-selesai" ondragover="allowDrop(event)" ondrop="dropKanban(event, 'SELESAI')" style="min-height: 500px; max-height: 70vh; overflow-y: auto;">
+                                        <!-- Cards Rendered Here -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div><!-- /panel-order -->
+
+
+            <!-- ══════════════════════════════════════════════
+                 PANEL: PRODUK (ADMIN)
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-produk" class="tab-pane-custom" style="display:none;">
+                <div class="row g-4">
+
+                    <!-- Form Add/Edit Product -->
+                    <div class="col-md-5">
+                        <div class="premium-card">
+                            <div class="section-label mb-3" id="admin-form-title">
+                                <i class="fa-solid fa-square-plus" style="color:var(--accent);"></i> Kelola Jasa / Bahan
+                            </div>
+                            <input type="hidden" id="adm-prod-id" value="">
+
+                            <div class="mb-3">
+                                <label class="form-label">Nama Jasa / Kertas / Banner</label>
+                                <input type="text" id="adm-prod-nama" class="form-control"
+                                    placeholder="Contoh: Art Paper 260gsm">
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">Kategori</label>
+                                    <select id="adm-prod-kategori" class="form-select">
+                                        <option value="Print &amp; Copy">Print &amp; Copy</option>
+                                        <option value="A3+">A3+</option>
+                                        <option value="Large Format">Large Format</option>
+                                        <option value="Finishing">Finishing</option>
+                                        <option value="Tambahan">Tambahan</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Jenis Hitung</label>
+                                    <select id="adm-prod-hitung" class="form-select">
+                                        <option value="pcs">Per Lembar / Pcs</option>
+                                        <option value="meter_min1">Per Meter (Minimal 1x1m)</option>
+                                        <option value="meter_murni">Per Meter (Tanpa Minimal)</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">Harga Utama / Eceran (Rp)</label>
+                                    <input type="number" id="adm-prod-harga" class="form-control" placeholder="7000">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Ikon Tampilan</label>
+                                    <select id="adm-prod-icon" class="form-select">
+                                        <option value="fa-file-lines">📄 Print &amp; Copy</option>
+                                        <option value="fa-print">🖨️ A3+</option>
+                                        <option value="fa-scroll">📜 Large Format</option>
+                                        <option value="fa-scissors">✂️ Finishing</option>
+                                        <option value="fa-tags">🏷️ Tambahan</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Grosir Settings -->
+                            <div class="row g-2 mb-3 p-2 rounded-2"
+                                style="background:var(--bg-elevated); border:1px dashed var(--border-strong);">
+                                <div class="col-12 mb-1">
+                                    <small class="fw-bold" style="color:var(--accent);">
+                                        <i class="fa-solid fa-tags me-1"></i> Pengaturan Harga Grosir (Opsional)
+                                    </small>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label" style="font-size:0.72rem;">Min. Qty Grosir</label>
+                                    <input type="number" id="adm-prod-grosir-qty" class="form-control form-control-sm"
+                                        placeholder="Contoh: 50" value="0">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label" style="font-size:0.72rem;">Harga Grosir / lbr (Rp)</label>
+                                    <input type="number" id="adm-prod-grosir-harga"
+                                        class="form-control form-control-sm fw-bold"
+                                        style="color:var(--emerald);"
+                                        placeholder="Contoh: 6000" value="0">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Variasi Bahan / Opsi (Pisahkan dengan koma <code style="color:var(--accent);">,</code>)</label>
+                                <textarea id="adm-prod-varian" class="form-control" rows="2"
+                                    placeholder="Glosser, Matte, No-Finishing"></textarea>
+                            </div>
+
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-primary fw-bold px-4" onclick="simpanProdukDariAdmin()">
+                                    <i class="fa-solid fa-cloud-arrow-up me-1"></i> Simpan Produk
+                                </button>
+                                <button class="btn btn-dark" onclick="resetFormAdmin()">Batal</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product List -->
+                    <div class="col-md-7">
+                        <div class="premium-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="section-label mb-0">
+                                    <i class="fa-solid fa-database"></i> Daftar Master Pricelist
+                                </div>
+                                <div class="search-wrapper" style="width:200px;">
+                                    <i class="fa-solid fa-magnifying-glass"></i>
+                                    <input type="text" id="search-produk-admin" class="form-control form-control-sm"
+                                        placeholder="Cari produk...">
+                                </div>
+                            </div>
+                            <div class="table-responsive" style="max-height:480px; overflow-y:auto;">
+                                <table id="table-master-produk" class="table table-hover align-middle small">
+                                    <thead>
+                                        <tr>
+                                            <th onclick="sortTableProduk('nama')" style="width:40%; cursor:pointer;">Nama Produk ↕</th>
+                                            <th onclick="sortTableProduk('kategori')" style="cursor:pointer;">Kategori ↕</th>
+                                            <th onclick="sortTableProduk('harga')" style="cursor:pointer;">Harga ↕</th>
+                                            <th class="text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="adm-table-produk"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div><!-- /panel-produk -->
+
+
+            <!-- ══════════════════════════════════════════════
+                 PANEL: PELANGGAN
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-pelanggan" class="tab-pane-custom" style="display:none;">
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="m-0 fw-bold" style="color:var(--text-primary);">Database Pelanggan</h4>
+                        <small style="color:var(--text-muted);">Manajemen data customer dan akumulasi poin loyalitas digital</small>
+                    </div>
+                    <span class="badge" style="background:var(--accent-dim); color:var(--accent); border:1px solid rgba(245,158,11,.2); padding:6px 12px; font-size:0.75rem;">
+                        <i class="fa-solid fa-users me-2"></i>Loyalitas Terintegrasi
+                    </span>
+                </div>
+
+                <!-- Customer Stats -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="stat-card-dark accent-blue">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="stat-label">Total Pelanggan Terdaftar</div>
+                                    <div class="stat-value" style="font-size:1.3rem;" id="cust-stat-total">0 Orang</div>
+                                </div>
+                                <div class="stat-icon" style="background:var(--blue-dim);">
+                                    <i class="fa-solid fa-users" style="color:var(--blue);"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card-dark accent-green">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="stat-label">Total Order Pelanggan</div>
+                                    <div class="stat-value" style="font-size:1.3rem;" id="cust-stat-poin">0 Nota</div>
+                                </div>
+                                <div class="stat-icon" style="background:var(--emerald-dim);">
+                                    <i class="fa-solid fa-receipt" style="color:var(--emerald);"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card-dark" style="border-left:3px solid var(--cyan);">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div>
+                                    <div class="stat-label">Total Transaksi Cust</div>
+                                    <div class="stat-value" style="font-size:1.3rem;" id="cust-stat-omset">Rp 0</div>
+                                </div>
+                                <div class="stat-icon" style="background:var(--cyan-dim);">
+                                    <i class="fa-solid fa-wallet" style="color:var(--cyan);"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="premium-card mb-3" style="padding:14px 16px;">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-8">
+                            <div class="search-wrapper">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="search-pelanggan-input" class="form-control form-control-sm"
+                                    placeholder="Cari berdasarkan nama pelanggan atau nomor WhatsApp...">
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <button class="btn btn-sm btn-outline-secondary fw-bold" id="btn-clear-search-cust">
+                                <i class="fa-solid fa-rotate-left me-1"></i> Reset Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customer Table -->
+                <div class="premium-card p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr class="small fw-bold">
+                                    <th class="ps-3" style="width:30%;">Nama Pelanggan</th>
+                                    <th style="width:20%;">No. WhatsApp</th>
+                                    <th style="width:15%;">Total Order</th>
+                                    <th style="width:20%;">Total Belanja</th>
+                                    <th style="width:15%;">Status Keaktifan</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pelanggan-table-body" class="small">
+                                <tr>
+                                    <td colspan="5" class="text-center py-5" style="color:var(--text-muted);">
+                                        <i class="fa-solid fa-spinner fa-spin fa-2xl mb-3 d-block" style="color:var(--accent);"></i>
+                                        Sedang memuat data pelanggan...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div><!-- /panel-pelanggan -->
+
+
+            <!-- ══════════════════════════════════════════════
+                 PANEL: LAPORAN
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-laporan" class="tab-pane-custom" style="display:none;">
+
+                <!-- Date Filter -->
+                <div class="premium-card mb-4">
+                    <div class="row align-items-end g-3">
+                        <div class="col-md-3">
+                            <div class="section-label"><i class="fa-solid fa-filter" style="color:var(--rose);"></i> Filter Laporan</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label"><i class="fa-solid fa-magnifying-glass me-1"></i> Cari Data</label>
+                            <div class="input-group input-group-sm">
+                                <input type="text" id="report-search-input" class="form-control"
+                                    placeholder="ID Nota / Pelanggan..." oninput="hitungDataDashboardDanLaporan()">
+                                <button class="btn btn-outline-danger" type="button" onclick="resetFilterLaporan()" title="Reset Pencarian & Tanggal">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Dari Tanggal</label>
+                            <input type="date" id="report-start-date" class="form-control form-control-sm fw-bold"
+                                onchange="hitungDataDashboardDanLaporan()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Sampai Tanggal</label>
+                            <input type="date" id="report-end-date" class="form-control form-control-sm fw-bold"
+                                onchange="hitungDataDashboardDanLaporan()">
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-success btn-sm w-100 fw-bold py-2" onclick="exportLaporanKeExcel()">
+                                <i class="fa-solid fa-file-excel me-1"></i> Export Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Laporan Stat Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="stat-card bg-success">
+                            <small class="fw-bold opacity-75">TOTAL OMSET PERIODE TERPILIH</small>
+                            <h2 class="fw-bold m-0 mt-1" id="report-omset">Rp 0</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card bg-warning">
+                            <small class="fw-bold opacity-75">ANTREAN BERJALAN</small>
+                            <h2 class="fw-bold m-0 mt-1" id="report-active">0 Order</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="stat-card bg-primary">
+                            <small class="fw-bold opacity-75">SIAP DIAMBIL / SELESAI</small>
+                            <h2 class="fw-bold m-0 mt-1" id="report-done">0 Order</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Table -->
+                <div class="premium-card">
+                    <div class="section-label mb-3"><i class="fa-solid fa-list-check"></i> Rincian Transaksi Tanggal Terpilih</div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle small">
+                            <thead id="report-table-head">
+                                <tr style="cursor: pointer;">
+                                    <th onclick="sortLaporan('notaId')">ID Nota <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                    <th onclick="sortLaporan('nama')">Pelanggan <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                    <th onclick="sortLaporan('tanggal')">Tanggal <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                    <th onclick="sortLaporan('totalBelanja')">Total Order <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                    <th onclick="sortLaporan('dpMasuk')">Terbayar <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                    <th onclick="sortLaporan('status')">Status <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div><!-- /panel-laporan -->
+
+
+            <!-- ══════════════════════════════════════════════
+                 PANEL: KEUANGAN (NEW)
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-keuangan" class="tab-pane-custom active" style="display:block;">
+                
+                <!-- Sesi Kasir Saat Ini (Ringkasan Shift) -->
+                <div class="premium-card mb-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div class="section-label"><i class="fa-solid fa-clock-rotate-left text-primary"></i> Sesi Kasir Saat Ini</div>
+                        <span id="shift-status-badge" class="badge bg-success rounded-pill px-3 py-2"><i class="fa-solid fa-check-circle me-1"></i> Shift Buka</span>
+                    </div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 text-center bg-light position-relative" style="cursor:pointer;" onclick="editModalAwalManual()">
+                                <small class="fw-bold text-muted d-block mb-1">Modal Awal <i class="fa-solid fa-pencil text-primary ms-1" style="font-size:0.8em;"></i></small>
+                                <h5 class="fw-bold m-0 text-primary" id="shift-modal-awal">Rp 0</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 text-center bg-light">
+                                <small class="fw-bold text-muted d-block mb-1">Pemasukan Tunai</small>
+                                <h5 class="fw-bold m-0 text-success" id="shift-pemasukan">Rp 0</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 text-center bg-light">
+                                <small class="fw-bold text-muted d-block mb-1">Pengeluaran</small>
+                                <h5 class="fw-bold m-0 text-danger" id="shift-pengeluaran">Rp 0</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="border rounded p-3 text-center" style="background-color: var(--bs-indigo); color: white;">
+                                <small class="fw-bold opacity-75 d-block mb-1">Saldo Laci Seharusnya</small>
+                                <h5 class="fw-bold m-0" id="shift-saldo-laci">Rp 0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-warning fw-bold flex-grow-1" onclick="bukaModalPengeluaran()"><i class="fa-solid fa-money-bill-transfer me-1"></i> Catat Pengeluaran</button>
+                        <button class="btn btn-danger fw-bold flex-grow-1" onclick="bukaModalTutupKasir()"><i class="fa-solid fa-cash-register me-1"></i> Tutup Kasir (End Shift)</button>
+                    </div>
+                </div>
+
+                <!-- Date Filter Keuangan & Riwayat -->
+                <div class="premium-card mb-4">
+                    <div class="row align-items-end g-3">
+                        <div class="col-md-3">
+                            <div class="section-label"><i class="fa-solid fa-filter" style="color:var(--rose);"></i> Filter Riwayat</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Tipe Laporan</label>
+                            <select id="fin-filter-type" class="form-select form-select-sm fw-bold" onchange="renderDataKeuangan()">
+                                <option value="expenses">Buku Kas (Pengeluaran)</option>
+                                <option value="reports">Riwayat Tutup Kasir</option>
+                                <option value="piutang">Buku Piutang (Belum Lunas)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Dari Tanggal</label>
+                            <input type="date" id="fin-start-date" class="form-control form-control-sm fw-bold" onchange="renderDataKeuangan()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Sampai Tanggal</label>
+                            <input type="date" id="fin-end-date" class="form-control form-control-sm fw-bold" onchange="renderDataKeuangan()">
+                        </div>
+                        <div class="col-md-2">
+                            <button class="btn btn-outline-danger btn-sm w-100 fw-bold py-2" onclick="resetFilterKeuangan()" title="Reset Filter">
+                                <i class="fa-solid fa-xmark me-1"></i> Reset Filter
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Keuangan Stat Cards -->
+                <div class="row g-3 mb-4" id="fin-stat-cards">
+                    <div class="col-md-6">
+                        <div class="stat-card bg-danger">
+                            <small class="fw-bold opacity-75">TOTAL PENGELUARAN (TERFILTER)</small>
+                            <h2 class="fw-bold m-0 mt-1" id="fin-total-expense">Rp 0</h2>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="stat-card bg-secondary">
+                            <small class="fw-bold opacity-75">JUMLAH TRANSAKSI (TERFILTER)</small>
+                            <h2 class="fw-bold m-0 mt-1" id="fin-total-count">0 Data</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Keuangan Table -->
+                <div class="premium-card">
+                    <div class="section-label mb-3" id="fin-table-title"><i class="fa-solid fa-list-check"></i> Daftar Pengeluaran</div>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle small">
+                            <thead id="fin-table-head">
+                                <!-- Dinamis dirender lewat JS -->
+                            </thead>
+                            <tbody id="fin-table-body">
+                                <tr><td colspan="5" class="text-center py-4 text-muted">Memuat data keuangan...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div><!-- /panel-keuangan -->
+
+            <!-- ══════════════════════════════════════════════
+                 PANEL: PENGELUARAN (SPA)
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-pengeluaran" class="tab-pane-custom" style="display:none;">
+                <div class="d-flex align-items-center mb-4">
+                    <button class="btn btn-light rounded-circle shadow-sm me-3" onclick="kembaliKeKeuangan()" title="Kembali">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h4 class="m-0 fw-bold header-title text-warning"><i class="fa-solid fa-money-bill-transfer me-2"></i>Catat Pengeluaran Toko</h4>
+                </div>
+                
+                <div class="row g-4">
+                    <div class="col-md-6">
+                        <div class="premium-card">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold">Nominal (Rp)</label>
+                                <input type="number" id="pengeluaran-nominal" class="form-control form-control-lg fw-bold" placeholder="Contoh: 50000">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold">Keterangan / Keperluan</label>
+                                <textarea id="pengeluaran-keterangan" class="form-control" rows="3" placeholder="Contoh: Beli Air Galon 2x"></textarea>
+                            </div>
+                            <button class="btn btn-warning w-100 fw-bold shadow-sm" onclick="simpanPengeluaranKas()">
+                                <i class="fa-solid fa-save me-1"></i> Simpan Pengeluaran
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="premium-card">
+                            <div class="section-label mb-3 text-warning border-warning"><i class="fa-solid fa-list-check"></i> Riwayat Pengeluaran Hari Ini</div>
+                            <div id="list-pengeluaran-hari-ini" style="max-height:300px; overflow-y:auto; padding-right:5px;">
+                                <!-- Render JS -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════
+                 PANEL: TUTUP KASIR (SPA)
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-tutup-kasir" class="tab-pane-custom" style="display:none;">
+                <div class="d-flex align-items-center mb-4">
+                    <button class="btn btn-light rounded-circle shadow-sm me-3" onclick="kembaliKeKeuangan()" title="Kembali">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h4 class="m-0 fw-bold header-title text-danger"><i class="fa-solid fa-cash-register me-2"></i>Tutup Kasir (Setor Uang Shift)</h4>
+                </div>
+
+                <div class="premium-card mb-4 bg-danger text-white border-0 shadow-sm">
+                    <div class="d-flex align-items-center">
+                        <i class="fa-solid fa-triangle-exclamation fa-3x me-3 opacity-75"></i>
+                        <div>
+                            <h5 class="fw-bold mb-1 text-white">Lakukan Tutup Kasir Hanya Saat Pulang!</h5>
+                            <p class="mb-0 small" style="color:rgba(255,255,255,0.85);">Pastikan semua pesanan hari ini sudah lunas/terbayar jika sudah diserahkan ke pelanggan.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-md-7">
+                        <div class="premium-card">
+                            <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                                <span class="fw-bold text-muted">A. Modal Awal Laci</span>
+                                <span class="fw-bold text-dark" id="tk-modal-awal-label">Rp 0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                                <span class="fw-bold text-muted">B. Total Penerimaan (Cash & Transfer)</span>
+                                <span class="fw-bold text-success" id="tk-penerimaan-label">Rp 0</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-3 border-bottom pb-2">
+                                <span class="fw-bold text-muted">C. Total Pengeluaran Kasir</span>
+                                <span class="fw-bold text-danger" id="tk-pengeluaran-label">- Rp 0</span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between mt-4 pt-3 bg-light rounded-3 p-3 border">
+                                <span class="fw-bold fs-5 text-dark">Total Uang Sistem (A+B-C)</span>
+                                <span class="fw-bold fs-4 text-primary" id="tk-uang-sistem-label">Rp 0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-5">
+                        <div class="premium-card border-danger border-2">
+                            <h6 class="fw-bold text-danger mb-3 text-center">Hitung Uang Fisik Anda</h6>
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold">Nominal Uang Fisik / Di Rekening</label>
+                                <input type="text" id="tk-uang-fisik" class="form-control form-control-lg text-center fw-bold text-danger" placeholder="Masukkan total uang riil..." oninput="formatRupiahInput(this); hitungSelisihKasir()">
+                            </div>
+                            
+                            <div class="p-3 rounded-3 text-center mb-4" id="tk-selisih-box" style="background:#f8f9fa;">
+                                <small class="text-muted fw-bold d-block mb-1">Selisih Uang</small>
+                                <h4 class="fw-bold m-0" id="tk-selisih-label">Rp 0</h4>
+                            </div>
+
+                            <button class="btn btn-danger btn-lg w-100 fw-bold shadow-sm" onclick="prosesTutupKasirAkhir()">
+                                <i class="fa-solid fa-lock me-1"></i> Cetak Laporan &amp; Selesai
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- ══════════════════════════════════════════════
+                 PANEL: PENGATURAN
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-pengaturan" class="tab-pane-custom" style="display:none;">
+                <div class="row g-4">
+
+                    <!-- Profil Identitas -->
+                    <div class="col-md-6">
+                        <div class="premium-card">
+                            <div class="section-label mb-3">
+                                <i class="fa-solid fa-sliders" style="color:var(--rose);"></i> Profil Identitas Usaha
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Nama Toko / Percetakan</label>
+                                <input type="text" id="set-nama-toko" class="form-control" value="Putra Print">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">No. WhatsApp Utama Struk</label>
+                                <input type="text" id="set-wa-toko" class="form-control"
+                                    placeholder="Contoh: 083112347800">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Alamat Fisik / Slogan</label>
+                                <textarea id="set-alamat-toko" class="form-control" rows="2">Solusi Cetak Terbaik &amp; Cepat</textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Catatan Nota WhatsApp</label>
+                                <textarea id="set-catatan-wa" class="form-control" rows="4"></textarea>
+                            </div>
+                            <button class="btn btn-success fw-bold w-100" onclick="simpanPengaturanToko()">
+                                <i class="fa-solid fa-floppy-disk me-1"></i> Terapkan Pengaturan Toko
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Kebijakan & Keamanan -->
+                    <div class="col-md-6">
+
+                        <div class="premium-card mb-4">
+                            <div class="section-label mb-3">
+                                <i class="fa-solid fa-scale-balanced" style="color:var(--blue);"></i> Kebijakan Finansial &amp; Loyalitas
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">Tarif Jasa Potong (Rp)</label>
+                                    <input type="number" id="set-tarif-potong"
+                                        class="form-control form-control-sm fw-bold"
+                                        style="color:var(--rose);" value="125">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Metode Pembulatan</label>
+                                    <select id="set-pembulatan" class="form-select form-select-sm fw-bold">
+                                        <option value="500">Kelipatan Rp 500</option>
+                                        <option value="100">Kelipatan Rp 100</option>
+                                        <option value="0">Tanpa Pembulatan</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">Batas Hari Vakum</label>
+                                    <input type="number" id="set-hari-vakum" class="form-control form-control-sm" value="14">
+                                    <small style="font-size:0.68rem; color:var(--text-muted);">Hari pemicu "Tidak Aktif"</small>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Min. Order Loyal</label>
+                                    <input type="number" id="set-min-loyal" class="form-control form-control-sm" value="5">
+                                    <small style="font-size:0.68rem; color:var(--text-muted);">Transaksi pemicu "Loyal"</small>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary fw-bold w-100 btn-sm"
+                                onclick="window.simpanKebijakanSistemCloud()">
+                                <i class="fa-solid fa-cloud-arrow-up me-1"></i> Simpan Kebijakan Sistem
+                            </button>
+                        </div>
+
+                        <!-- Security -->
+                        <div class="premium-card">
+                            <div class="section-label mb-3">
+                                <i class="fa-solid fa-lock" style="color:var(--text-muted);"></i> Sistem &amp; Keamanan
+                            </div>
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">PIN Akses Owner (Override)</label>
+                                    <input type="password" id="setting-pin-baru" class="form-control form-control-sm"
+                                        placeholder="Masukkan PIN baru">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Interval Password (Hari)</label>
+                                    <input type="number" id="setting-interval-password" class="form-control form-control-sm"
+                                        placeholder="Contoh: 30" value="30">
+                                </div>
+                            </div>
+                            <button class="btn btn-danger btn-sm w-100 fw-bold" onclick="simpanPinBaru()">
+                                <i class="fa-solid fa-key me-1"></i> Perbarui Autentikasi & PIN
+                            </button>
+                        </div>
+
+                    </div>
+                    
+                    <!-- Manajemen Staf (ALL-IN-1) -->
+                    <div class="col-md-12" id="section-manajemen-staf" style="display: none;">
+                        <div class="premium-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="section-label m-0">
+                                    <i class="fa-solid fa-users-gear" style="color:var(--emerald);"></i> Manajemen Staf & Kasir
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="p-3 border rounded bg-light h-100">
+                                        <h6 class="fw-bold mb-3"><i class="fa-solid fa-user-plus me-1"></i> Tambah Kasir Baru</h6>
+                                        <div class="mb-2">
+                                            <label class="form-label small fw-bold">Nama / Username</label>
+                                            <input type="text" id="add-staff-nama" class="form-control form-control-sm" placeholder="Contoh: budi">
+                                            <small class="text-muted" style="font-size:0.7rem;">Gunakan satu kata tanpa spasi untuk kemudahan login.</small>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label small fw-bold">Hak Akses (Role)</label>
+                                            <select id="add-staff-role" class="form-select form-select-sm">
+                                                <option value="kasir">Kasir (Transaksi & Pelanggan)</option>
+                                                <option value="operator">Operator Cetak</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold">Password Sementara</label>
+                                            <input type="password" id="add-staff-pass" class="form-control form-control-sm" placeholder="Minimal 6 karakter">
+                                        </div>
+                                        <button class="btn btn-emerald btn-sm w-100 fw-bold" onclick="tambahStafBaru()" id="btn-tambah-staf">
+                                            Daftarkan Akun
+                                        </button>
+                                        <div id="add-staff-msg" class="mt-2 small fw-bold text-center d-none"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle small">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Nama / Username</th>
+                                                    <th>Email Login (System)</th>
+                                                    <th>Role</th>
+                                                    <th>Terakhir Ubah Password</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="table-staf-body">
+                                                <tr><td colspan="4" class="text-center text-muted">Memuat data staf...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div><!-- /panel-pengaturan -->
+
+
+            <!-- ══════════════════════════════════════════════
+                 MODALS
+                 ══════════════════════════════════════════════ -->
+
+            <!-- Modal: Order Detail -->
+            <div class="modal fade no-print" id="detailOrderModal" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header bg-dark">
+                            <h5 class="modal-title" id="modal-title-id">Detail Item Order</h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body" id="modal-content-body"></div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal: Customer History -->
+            <div class="modal fade" id="modalHistoryCustomer" tabindex="-1">
+                <div class="modal-dialog modal-dialog-scrollable modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">
+                                <i class="fa-solid fa-clock-rotate-left me-2"></i> History Customer
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div id="history-customer-content">
+                                <div class="text-center py-4" style="color:var(--text-muted);">Tidak ada history</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /tab-panels -->
+    </div><!-- /main-content -->
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+         PRINT INVOICE AREA (Hidden from screen, visible only when printing)
+         ═══════════════════════════════════════════════════════════ -->
+    <div id="print-invoice-area" style="display:none;">
+        <div style="text-align:center; border-bottom:2px solid #000; padding-bottom:12px; margin-bottom:15px;">
+            <h1 style="margin:0; font-weight:800; font-size:26px; letter-spacing:1px;">PUTRA PRINT</h1>
+            <div style="font-size:13px; margin-top:5px; font-weight:bold;" id="p-alamat-display">Solusi Cetak Terbaik &amp; Cepat</div>
+            <div style="font-size:12px; margin-top:2px;">WhatsApp: <span id="p-wa-display">083112347800</span></div>
+        </div>
+
+        <table style="width:100%; font-size:13px; margin-bottom:15px; border-collapse:collapse;">
+            <tr>
+                <td style="width:50%; padding:3px 0;"><strong>No. Invoice:</strong> <span id="p-nota-id" style="font-weight:bold;">-</span></td>
+                <td style="width:50%; padding:3px 0; text-align:right;"><strong>Pelanggan:</strong> <span id="p-customer-nama">-</span></td>
+            </tr>
+            <tr>
+                <td style="padding:3px 0;"><strong>Tanggal:</strong> <span id="p-nota-tanggal">-</span></td>
+                <td style="padding:3px 0; text-align:right;"><strong>No. WA:</strong> <span id="p-customer-phone">-</span></td>
+            </tr>
+        </table>
+
+        <div style="border-top:2px solid #000; border-bottom:2px solid #000; padding:5px 0; margin-bottom:15px;">
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead>
+                    <tr style="border-bottom:1px solid #000;">
+                        <th style="padding:6px 0; text-align:left; width:55%;">Deskripsi Cetakan / Jasa</th>
+                        <th style="padding:6px 0; text-align:center; width:15%;">Qty</th>
+                        <th style="padding:6px 0; text-align:right; width:30%;">Total Harga</th>
+                    </tr>
+                </thead>
+                <tbody id="p-table-items"></tbody>
+            </table>
+        </div>
+
+        <div style="width:100%; display:flex; justify-content:flex-end;">
+            <table style="width:50%; font-size:13px; font-weight:bold; margin-bottom:25px;">
+                <tr>
+                    <td style="padding:4px 0; text-align:left;">SUBTOTAL</td>
+                    <td style="text-align:right; padding:4px 0;" id="p-grand-total">Rp 0</td>
+                </tr>
+                <tr>
+                    <td style="padding:4px 0; text-align:left; color:#2e7d32;">DP / TUNAI</td>
+                    <td style="text-align:right; padding:4px 0; color:#2e7d32;" id="p-dp">Rp 0</td>
+                </tr>
+                <tr style="border-top:1px dashed #000;">
+                    <td style="padding:8px 0; text-align:left; font-size:14px; color:#c62828;">SISA TAGIHAN</td>
+                    <td style="text-align:right; padding:8px 0; font-size:14px; color:#c62828;" id="p-sisa">Rp 0</td>
+                </tr>
+            </table>
+        </div>
+
+        <div style="text-align:center; font-size:12px; border-top:1px dashed #000; padding-top:15px; margin-top:15px; line-height:1.5;">
+            <div style="font-weight:bold;">Terima kasih atas kunjungan &amp; kepercayaan Anda!</div>
+            <div style="color:#555;">Kritik &amp; saran hubungi admin toko. Desain &amp; Cetak Kilat Terpercaya.</div>
+        </div>
+    </div><!-- /print-invoice-area -->
+
+    <!-- Modals Pengeluaran & Tutup Kasir Dihapus (Digantikan SPA Panels) -->
+
+    <!-- ═══════════════════════════════════════════════════════════
+         MODAL: PIN OWNER (PROTECTED ACCESS)
+         ═══════════════════════════════════════════════════════════ -->
+    <div class="modal fade no-print" id="modalPinOwnerPremium"
+        data-bs-backdrop="static" data-bs-keyboard="false"
+        tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header border-0 justify-content-center py-4"
+                    style="background:var(--bg-elevated); border-radius:14px 14px 0 0 !important;">
+                    <h5 class="modal-title fw-bold m-0 text-center">
+                        <i class="fa-solid fa-shield-halved me-2" style="color:var(--rose);"></i>Akses Terproteksi
+                    </h5>
+                </div>
+                <div class="modal-body text-center p-4">
+                    <p style="color:var(--text-muted); font-size:0.84rem;" class="mb-3">
+                        Menu ini khusus Owner. Masukkan PIN Akses Anda:
+                    </p>
+                    <input type="password" id="input-pin-premium"
+                        class="form-control form-control-lg text-center fw-bold rounded-3 mb-2"
+                        placeholder="••••" maxlength="4" inputmode="numeric" autofocus>
+                    <div id="pesan-eror-pin" class="d-none fw-bold mb-3"
+                        style="color:var(--rose); font-size:0.82rem;">
+                        ⚠️ PIN Salah, Akses Ditolak!
+                    </div>
+                    <div class="d-grid gap-2 mt-2">
+                        <button type="button" class="btn btn-success rounded-3 fw-bold py-2"
+                            onclick="validasiPinPremiumOwner()">
+                            Masuk Sistem <i class="fa-solid fa-unlock-keyhole ms-1"></i>
+                        </button>
+                        <button type="button" class="btn btn-link text-muted btn-sm fw-bold border-0 mt-1"
+                            data-bs-dismiss="modal" onclick="clearAngkaPin()">
+                            Kembali Ke Kasir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Ganti Password Wajib -->
+    <div class="modal fade no-print" id="modalGantiPassword"
+        data-bs-backdrop="static" data-bs-keyboard="false"
+        tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white border-0 justify-content-center py-3">
+                    <h6 class="modal-title fw-bold m-0 text-center">
+                        <i class="fa-solid fa-lock me-2"></i>Waktunya Ganti Password!
+                    </h6>
+                </div>
+                <div class="modal-body p-4">
+                    <p style="color:var(--text-sec); font-size:0.84rem;" class="mb-3 text-center">
+                        Keamanan akun sangat penting. Silakan perbarui password Anda untuk melanjutkan.
+                    </p>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">Password Lama</label>
+                        <input type="password" id="input-pass-lama" class="form-control text-center fw-bold rounded-2">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Password Baru</label>
+                        <input type="password" id="input-pass-baru" class="form-control text-center fw-bold rounded-2" placeholder="Min. 6 karakter">
+                    </div>
+                    <div id="pesan-eror-ganti-pass" class="d-none fw-bold mb-3 text-center" style="color:var(--rose); font-size:0.82rem;"></div>
+                    
+                    <button type="button" id="btn-proses-ganti-pass" class="btn btn-danger w-100 rounded-3 fw-bold py-2" onclick="prosesGantiPassword()">
+                        Perbarui Sekarang <i class="fa-solid fa-arrow-right ms-1"></i>
+                    </button>
+                    <div class="text-center mt-3">
+                        <button class="btn btn-link text-muted btn-sm fw-bold border-0 p-0" onclick="window.doLogout()">Logout Saja</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- ═══════════════════════════════════════════════════════════
+         SCRIPTS
+         ═══════════════════════════════════════════════════════════ -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- LAYAR PEMBUKA (WELCOME SCREEN FULL PAGE) -->
+    <div id="welcome-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bs-indigo); z-index:9999; flex-direction:column; justify-content:center; align-items:center;">
+        <div class="card shadow-lg border-0" style="width:100%; max-width:450px; border-radius:1rem;">
+            <div class="card-body p-5 text-center">
+                <i class="fa-solid fa-cash-register fa-4x text-primary mb-3"></i>
+                <h3 class="fw-bold text-dark mb-1">Mulai Shift</h3>
+                <p class="text-muted mb-4">Selamat datang, <span id="buka-kasir-nama" class="fw-bold text-primary">Kasir</span>.<br>Masukkan uang Modal Awal di laci kasir.</p>
+                <div class="input-group mb-4">
+                    <span class="input-group-text bg-light fw-bold text-dark">Rp</span>
+                    <input type="text" id="bk-modal-awal" class="form-control form-control-lg fw-bold text-center" placeholder="0" oninput="formatRupiahInput(this)">
+                </div>
+                <button type="button" class="btn btn-primary btn-lg w-100 fw-bold" onclick="prosesBukaKasir()">
+                    Buka Pembukuan <i class="fa-solid fa-arrow-right ms-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script type="module" src="js/pembukuan.js"></script>
+    <script type="module">
+        // ── AUTH GUARD: Pastikan user sudah login sebelum bisa pakai aplikasi ──
+        import { auth } from './js/firebase-init.js';
+        import { logoutUser } from './js/auth.js';
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                // Belum login — redirect ke halaman login
+                window.location.replace('login.html');
+            } else {
+                // Sudah login, mari kita muat info session
+                if (window.initUserSession) {
+                    window.initUserSession(user);
+                }
+            }
+        });
+
+        window.doLogout = async function() {
+            if (confirm('Yakin ingin keluar dari aplikasi?')) {
+                await logoutUser();
+                window.location.replace('login.html');
+            }
+        };
+    </script>
+    <script src="js/ui-kanban.js"></script>
+
+    <!-- Live Clock (inline, no Firebase dependency) -->
+    <script>
+        (function () {
+            function tick() {
+                const el = document.getElementById('live-clock');
+                if (!el) return;
+                const now = new Date();
+                el.textContent = now.toLocaleTimeString('id-ID', {
+                    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+                });
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
+    </script>
+
+    <!-- MOBILE RESPONSIVE — Navigation & Tab Switch JS -->
+    <script>
+        function _setAllNavActive(menuItemId) {
+            document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+            const d = document.getElementById(menuItemId);
+            if (d) d.classList.add('active');
+            document.querySelectorAll('.bnav-item').forEach(el => el.classList.remove('active'));
+            const map = { 'menu-kasir':'bnav-kasir','menu-order':'bnav-order','menu-pelanggan':'bnav-pelanggan','menu-dashboard':'bnav-dashboard','menu-produk':'bnav-more','menu-laporan':'bnav-more','menu-pengaturan':'bnav-more' };
+            const bid = map[menuItemId];
+            if (bid) { const b = document.getElementById(bid); if (b) b.classList.add('active'); }
+        }
+
+        window.mobileNavSwitch = function(panelId, menuItemId) {
+            const dm = document.getElementById(menuItemId);
+            if (dm) switchTab(panelId, dm);
+            _setAllNavActive(menuItemId);
+            if (panelId === 'panel-kasir') switchMobileKasirTab('produk');
+        };
+
+        window.mobilePinSwitch = function(panelId, menuItemId) {
+            const dm = document.getElementById(menuItemId);
+            if (dm) bukaTabProteksi(panelId, dm);
+        };
+
+        window.switchMobileKasirTab = function(tab) {
+            const cp = document.getElementById('kasir-col-produk');
+            const ck = document.getElementById('kasir-col-keranjang');
+            const tp = document.getElementById('mktab-produk');
+            const tk = document.getElementById('mktab-keranjang');
+            if (!cp || !ck) return;
+            if (window.innerWidth >= 992) { cp.style.display=''; ck.style.display=''; return; }
+            if (tab === 'produk') {
+                cp.style.display=''; ck.style.display='none';
+                tp.classList.add('active'); tk.classList.remove('active');
+            } else {
+                cp.style.display='none'; ck.style.display='';
+                tk.classList.add('active'); tp.classList.remove('active');
+            }
+        };
+
+
+
+        window.toggleMobileMore = function() {
+            const m = document.getElementById('mobile-more-menu');
+            if (!m) return;
+            m.classList.contains('open') ? closeMobileMore() : (m.classList.add('open'), document.body.style.overflow='hidden');
+        };
+
+        window.closeMobileMore = function() {
+            const m = document.getElementById('mobile-more-menu');
+            if (m) m.classList.remove('open');
+            document.body.style.overflow='';
+        };
+
+        // Sync cart badge to mobile tab button
+        (function() {
+            const src = document.getElementById('cart-badge-count');
+            const tgt = document.getElementById('mktab-badge');
+            if (!src || !tgt) return;
+            function sync() {
+                const n = src.textContent.trim();
+                tgt.textContent = n;
+                tgt.style.display = (!n || n==='0') ? 'none' : 'inline-flex';
+            }
+            sync();
+            new MutationObserver(sync).observe(src, {childList:true, characterData:true, subtree:true});
+        })();
+
+        // FIX: Override inline height style on kasir row (inline > CSS media query)
+        // Also hide keranjang col by default on mobile
+        function fixMobileLayout() {
+            const row = document.getElementById('kasir-main-row');
+            const ck  = document.getElementById('kasir-col-keranjang');
+            if (window.innerWidth < 992) {
+                // Remove the inline height that locks the panel — CSS !important alone can't beat inline style
+                if (row) row.style.height = 'auto';
+                // Hide keranjang by default (show produk first)
+                if (ck) ck.style.display = 'none';
+            } else {
+                // Restore original inline height on desktop
+                if (row) row.style.height = 'calc(100vh - 96px)';
+                // Make sure both cols visible on desktop
+                if (ck) ck.style.display = '';
+                const cp = document.getElementById('kasir-col-produk');
+                if (cp) cp.style.display = '';
+            }
+
+            // Fix ALL inline max-height/overflow on internal elements
+            // CSS media queries cannot override inline styles, so we use JS
+            const isMobile = window.innerWidth < 992;
+
+            // Elements with inline max-height that create nested scrollers
+            const inlineScrollEls = [
+                // Katalog produk (max-height:310px; overflow-y:auto)
+                document.querySelector('#katalog-produk'),
+                // Laporan table wrapper (max-height:480px; overflow-y:auto)
+                document.querySelector('[style*="max-height:480px"]') ||
+                document.querySelector('.table-responsive[style]'),
+            ];
+
+            inlineScrollEls.forEach(el => {
+                if (!el) return;
+                if (isMobile) {
+                    el.dataset.origMaxHeight = el.dataset.origMaxHeight || el.style.maxHeight;
+                    el.dataset.origOverflow  = el.dataset.origOverflow  || el.style.overflowY;
+                    el.style.maxHeight = 'none';
+                    el.style.overflow  = 'visible';
+                } else {
+                    if (el.dataset.origMaxHeight) el.style.maxHeight = el.dataset.origMaxHeight;
+                    if (el.dataset.origOverflow)  el.style.overflowY = el.dataset.origOverflow;
+                }
+            });
+
+            // Kanban body columns inline height (min-height:500px, max-height:70vh)
+            document.querySelectorAll('.kanban-body').forEach(el => {
+                if (isMobile) {
+                    el.style.minHeight = 'unset';
+                    el.style.maxHeight = 'none';
+                    el.style.overflow  = 'visible';
+                } else {
+                    el.style.minHeight = '';
+                    el.style.maxHeight = '';
+                    el.style.overflow  = '';
+                }
+            });
+        }
+
+        // Run on load and on resize
+        fixMobileLayout();
+        window.addEventListener('resize', fixMobileLayout);
+    </script>
+
+</body>
+</html>

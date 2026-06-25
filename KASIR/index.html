@@ -56,6 +56,13 @@
             </a>
 
             <div class="sidebar-divider"></div>
+            
+            <a href="pembukuan.html" class="menu-item" id="menu-pembukuan">
+                <i class="fa-solid fa-book-open fa-fw"></i>
+                <span class="menu-text">Pembukuan</span>
+            </a>
+
+            <div class="sidebar-divider"></div>
 
             <!-- Admin (PIN Protected) -->
             <a href="#" class="menu-item" id="menu-dashboard" onclick="bukaTabProteksi('panel-dashboard', this)">
@@ -70,6 +77,7 @@
                 <i class="fa-solid fa-chart-line fa-fw"></i>
                 <span class="menu-text">Laporan</span>
             </a>
+
             <a href="#" class="menu-item" id="menu-pengaturan" onclick="bukaTabProteksi('panel-pengaturan', this)">
                 <i class="fa-solid fa-gears fa-fw"></i>
                 <span class="menu-text">Pengaturan</span>
@@ -155,6 +163,9 @@
             </div>
             <div class="header-right">
                 <span class="live-clock" id="live-clock">--:--:--</span>
+                <span id="header-user-info" class="d-flex align-items-center gap-2 me-3" style="font-size:0.85rem; font-weight:500;">
+                    <!-- Diisi dari script.js -->
+                </span>
                 <!-- <span class="version-tag">v10.0</span> -->
                 <button id="btn-logout" onclick="doLogout()" title="Keluar" style="background:rgba(244,63,94,0.12); border:1px solid rgba(244,63,94,0.25); color:#f43f5e; border-radius:8px; padding:4px 12px; font-size:0.78rem; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;" onmouseover="this.style.background='rgba(244,63,94,0.22)'" onmouseout="this.style.background='rgba(244,63,94,0.12)'">
                     <i class="fa-solid fa-right-from-bracket"></i> Logout
@@ -367,69 +378,69 @@
 
                             <!-- Cart Footer / Payment -->
                             <div class="cart-footer">
-                                <hr style="margin: 0 0 10px 0;">
+                                <hr style="margin: 0 0 6px 0;">
 
-                                <!-- Subtotal -->
-                                <div class="d-flex justify-content-between mb-1" style="font-size:0.82rem;">
-                                    <span style="color:var(--text-secondary);">Subtotal</span>
-                                    <span class="fw-bold" id="cart-total-mock">Rp 0</span>
-                                </div>
+                                <!-- Input Pembayaran & Total (Desain Baru Kiri-Kanan) -->
+                                <div class="row g-2 mb-2">
+                                    <!-- Kiri: Diskon & Total -->
+                                    <div class="col-4 d-flex flex-column justify-content-between">
+                                        <!-- Diskon -->
+                                        <div>
+                                            <label class="form-label mb-0 fw-bold" style="font-size:0.7rem; color:var(--text-secondary);">Diskon(%)</label>
+                                            <input type="number" id="payment-diskon" class="form-control form-control-sm px-2" value="0" min="0" max="100" style="font-size:0.85rem; height: 28px;" oninput="hitungSisaTagihan()">
+                                        </div>
+                                        <!-- Total -->
+                                        <div class="mt-1">
+                                            <div style="font-weight:700; font-size:0.8rem; color:var(--text-dark); margin-bottom: 0px;">Total</div>
+                                            <div style="color:var(--rose); font-weight:800; font-size:1.15rem; line-height: 1.1;" id="cart-total">Rp 0</div>
+                                        </div>
+                                        
+                                        <!-- Label Metode Pembayaran -->
+                                        <div class="mt-1 d-flex align-items-center" style="height: 28px;">
+                                            <label class="form-label mb-0 fw-bold" style="font-size:0.7rem; color:var(--text-secondary);">Metode</label>
+                                        </div>
+                                    </div>
 
-                                <!-- Diskon -->
-                                <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:0.82rem;">
-                                    <span style="color:var(--text-secondary);">Diskon</span>
-                                    <div class="d-flex align-items-center gap-2">
-                                        <input type="number" id="payment-diskon"
-                                            class="form-control form-control-sm text-center px-1 py-0"
-                                            value="0" min="0" max="100"
-                                            style="width:46px; height:24px; border-color:var(--accent);"
-                                            oninput="hitungSisaTagihan()">
-                                        <span style="color:var(--text-muted); font-size:0.78rem;">%</span>
-                                        <span class="fw-bold" style="color:var(--rose);" id="cart-diskon-nominal">- Rp 0</span>
+                                    <!-- Kanan: Dibayar & Sisa & Metode Bayar -->
+                                    <div class="col-8 d-flex flex-column justify-content-between">
+                                        <div>
+                                            <label class="form-label mb-0 fw-bold" style="font-size:0.7rem; color:var(--text-secondary);">Dibayar</label>
+                                            <input type="number" id="payment-dp" class="form-control form-control-sm fw-bold mb-1 px-2" style="color:var(--text-dark); font-size:0.95rem; height: 28px;" value="0" oninput="hitungSisaTagihan()">
+                                            
+                                            <div class="d-flex flex-wrap gap-1 mb-0 no-print">
+                                                <button type="button" class="btn btn-outline-secondary flex-fill bg-white fw-bold" style="font-size:0.7rem; padding:2px; border-color:#e0e0e0; color:#555;" onclick="setNominalInstan('pas')">Pas</button>
+                                                <button type="button" class="btn btn-outline-secondary flex-fill bg-white fw-bold" style="font-size:0.7rem; padding:2px; border-color:#e0e0e0; color:#555;" onclick="setNominalInstan(20000)">20k</button>
+                                                <button type="button" class="btn btn-outline-secondary flex-fill bg-white fw-bold" style="font-size:0.7rem; padding:2px; border-color:#e0e0e0; color:#555;" onclick="setNominalInstan(50000)">50k</button>
+                                                <button type="button" class="btn btn-outline-secondary flex-fill bg-white fw-bold" style="font-size:0.7rem; padding:2px; border-color:#e0e0e0; color:#555;" onclick="setNominalInstan(100000)">100k</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="d-flex justify-content-between align-items-end mt-1 pt-1 mb-1">
+                                            <div style="font-size:0.75rem; font-weight: 600; color:var(--text-secondary);" id="label-payment-sisa">Sisa:</div>
+                                            <div class="fw-bold text-end" id="payment-sisa" style="color:var(--rose); font-size:1rem; line-height: 1;">Rp 0</div>
+                                        </div>
+
+                                        <!-- Tombol Metode Pembayaran -->
+                                        <div class="d-flex gap-1 mt-1">
+                                            <input type="radio" class="btn-check" name="payment-method-radio" id="pay-tunai" value="Tunai" checked onchange="document.getElementById('payment-method').value = this.value">
+                                            <label class="btn btn-outline-primary flex-fill fw-bold py-1 mb-0" style="font-size:0.7rem; height: 28px; line-height: 1.2;" for="pay-tunai">💵 Tunai</label>
+
+                                            <input type="radio" class="btn-check" name="payment-method-radio" id="pay-tf" value="TF" onchange="document.getElementById('payment-method').value = this.value">
+                                            <label class="btn btn-outline-primary flex-fill fw-bold py-1 mb-0" style="font-size:0.7rem; height: 28px; line-height: 1.2;" for="pay-tf">🏦 TF</label>
+
+                                            <input type="radio" class="btn-check" name="payment-method-radio" id="pay-qris" value="QR" onchange="document.getElementById('payment-method').value = this.value">
+                                            <label class="btn btn-outline-primary flex-fill fw-bold py-1 mb-0" style="font-size:0.7rem; height: 28px; line-height: 1.2;" for="pay-qris">📱 QRIS</label>
+                                        </div>
+                                        <!-- Hidden select for script.js compatibility -->
+                                        <input type="hidden" id="payment-method" value="Tunai">
                                     </div>
                                 </div>
-
-                                <hr style="margin: 8px 0;">
-
-                                <!-- Grand Total -->
-                                <div class="d-flex justify-content-between mb-3" style="font-weight:700; font-size:1rem;">
-                                    <span>Total</span>
-                                    <span style="color:var(--rose);" id="cart-total">Rp 0</span>
-                                </div>
-
-                                <!-- Nominal Bayar & Sisa -->
-                                <div class="mb-2">
-                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                        <label class="form-label mb-0" style="font-size:0.8rem;">Dibayar (Rp)</label>
-                                        <div style="font-size:0.8rem; color:var(--text-secondary);">Sisa: <span class="fw-bold" id="payment-sisa" style="color:var(--rose);">Rp 0</span></div>
-                                    </div>
-                                    <input type="number" id="payment-dp"
-                                        class="form-control form-control-sm fw-bold text-end"
-                                        style="color:var(--emerald);"
-                                        value="0" oninput="hitungSisaTagihan()">
-                                    <div class="d-flex flex-wrap gap-1 mt-1 no-print">
-                                        <button type="button" class="btn-instan" style="font-size:0.7rem; padding:2px 6px;" onclick="setNominalInstan('pas')">Pas</button>
-                                        <button type="button" class="btn-instan" style="font-size:0.7rem; padding:2px 6px;" onclick="setNominalInstan(10000)">10k</button>
-                                        <button type="button" class="btn-instan" style="font-size:0.7rem; padding:2px 6px;" onclick="setNominalInstan(20000)">20k</button>
-                                        <button type="button" class="btn-instan" style="font-size:0.7rem; padding:2px 6px;" onclick="setNominalInstan(50000)">50k</button>
-                                        <button type="button" class="btn-instan" style="font-size:0.7rem; padding:2px 6px;" onclick="setNominalInstan(100000)">100k</button>
-                                    </div>
-                                </div>
-
                                 <!-- Action Buttons -->
                                 <div class="row g-1 mb-1">
                                     <div class="col-4">
-                                        <button id="btn-save-transaksi"
-                                            class="btn btn-outline-primary w-100 h-100 py-1 fw-bold"
-                                            style="font-size:0.75rem;"
-                                            onclick="simpanTransaksi('SAJA')">
-                                            <i class="fa-solid fa-floppy-disk d-block mb-1"></i> Simpan
-                                        </button>
-                                    </div>
-                                    <div class="col-4">
                                         <div class="dropdown w-100 h-100">
                                             <button class="btn btn-dark w-100 h-100 py-1 fw-bold dropdown-toggle" style="font-size:0.75rem;" type="button" data-bs-toggle="dropdown">
-                                                <i class="fa-solid fa-file-invoice d-block mb-1"></i> Draft
+                                                <i class="fa-solid fa-share-nodes d-block mb-1"></i> Draft
                                             </button>
                                             <ul class="dropdown-menu shadow">
                                                 <li><a class="dropdown-item" style="font-size:0.85rem;" href="#" onclick="kirimDraftWhatsapp()">
@@ -439,15 +450,16 @@
                                             </ul>
                                         </div>
                                     </div>
-                                    <div class="col-4">
+                                    <div class="col-8">
                                         <button id="btn-save-print"
                                             class="btn btn-danger w-100 h-100 py-1 fw-bold"
                                             style="font-size:0.75rem;"
-                                            onclick="simpanTransaksi('PRINT')">
-                                            <i class="fa-solid fa-money-bill-wave d-block mb-1"></i> Bayar
+                                            onclick="simpanTransaksi('ASK')">
+                                            <i class="fa-solid fa-money-bill-wave d-block mb-1"></i> BAYAR
                                         </button>
                                     </div>
                                 </div>
+
 
                             </div><!-- /cart-footer -->
                         </div><!-- /cart-rail -->
@@ -529,6 +541,9 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Inventory Warning -->
+                <div id="inventory-warning-container" class="mb-4"></div>
 
                 <!-- Charts -->
                 <div class="row g-3 mb-4">
@@ -825,6 +840,14 @@
                                 </div>
                             </div>
 
+                            <div class="row g-2 mb-3">
+                                <div class="col-12">
+                                    <label class="form-label" style="font-size:0.85rem;"><i class="fa-solid fa-boxes-stacked text-warning me-1"></i> Lacak Stok Fisik (Opsional)</label>
+                                    <input type="number" id="adm-prod-stok" class="form-control" placeholder="Kosongkan jika stok tidak dilacak">
+                                    <small class="text-muted" style="font-size: 0.7rem;">Sistem akan memotong stok secara otomatis jika ini diisi.</small>
+                                </div>
+                            </div>
+
                             <div class="mb-3">
                                 <label class="form-label">Variasi Bahan / Opsi (Pisahkan dengan koma <code style="color:var(--accent);">,</code>)</label>
                                 <textarea id="adm-prod-varian" class="form-control" rows="2"
@@ -1063,6 +1086,8 @@
 
 
             <!-- ══════════════════════════════════════════════
+
+            <!-- ══════════════════════════════════════════════
                  PANEL: PENGATURAN
                  ══════════════════════════════════════════════ -->
             <div id="panel-pengaturan" class="tab-pane-custom" style="display:none;">
@@ -1146,64 +1171,123 @@
                             <div class="section-label mb-3">
                                 <i class="fa-solid fa-lock" style="color:var(--text-muted);"></i> Sistem &amp; Keamanan
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Nama Kasir / Admin Aktif</label>
-                                <input type="text" id="set-kasir-nama" class="form-control form-control-sm"
-                                    value="Bagus Prayoga">
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">PIN Akses Admin</label>
-                                <input type="password" id="setting-pin-baru" class="form-control form-control-sm"
-                                    placeholder="Masukkan PIN baru">
+
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label">PIN Akses Owner (Override)</label>
+                                    <input type="password" id="setting-pin-baru" class="form-control form-control-sm"
+                                        placeholder="Masukkan PIN baru">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label">Interval Password (Hari)</label>
+                                    <input type="number" id="setting-interval-password" class="form-control form-control-sm"
+                                        placeholder="Contoh: 30" value="30">
+                                </div>
                             </div>
                             <button class="btn btn-danger btn-sm w-100 fw-bold" onclick="simpanPinBaru()">
-                                <i class="fa-solid fa-key me-1"></i> Perbarui Autentikasi
+                                <i class="fa-solid fa-key me-1"></i> Perbarui Autentikasi & PIN
                             </button>
                         </div>
 
                     </div>
+                    
+                    <!-- Manajemen Staf (ALL-IN-1) -->
+                    <div class="col-md-12" id="section-manajemen-staf" style="display: none;">
+                        <div class="premium-card">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="section-label m-0">
+                                    <i class="fa-solid fa-users-gear" style="color:var(--emerald);"></i> Manajemen Staf & Kasir
+                                </div>
+                            </div>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="p-3 border rounded bg-light h-100">
+                                        <h6 class="fw-bold mb-3"><i class="fa-solid fa-user-plus me-1"></i> Tambah Kasir Baru</h6>
+                                        <div class="mb-2">
+                                            <label class="form-label small fw-bold">Nama / Username</label>
+                                            <input type="text" id="add-staff-nama" class="form-control form-control-sm" placeholder="Contoh: budi">
+                                            <small class="text-muted" style="font-size:0.7rem;">Gunakan satu kata tanpa spasi untuk kemudahan login.</small>
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label small fw-bold">Hak Akses (Role)</label>
+                                            <select id="add-staff-role" class="form-select form-select-sm">
+                                                <option value="kasir">Kasir (Transaksi & Pelanggan)</option>
+                                                <option value="operator">Operator Cetak</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-bold">Password Sementara</label>
+                                            <input type="password" id="add-staff-pass" class="form-control form-control-sm" placeholder="Minimal 6 karakter">
+                                        </div>
+                                        <button class="btn btn-emerald btn-sm w-100 fw-bold" onclick="tambahStafBaru()" id="btn-tambah-staf">
+                                            Daftarkan Akun
+                                        </button>
+                                        <div id="add-staff-msg" class="mt-2 small fw-bold text-center d-none"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="table-responsive">
+                                        <table class="table table-hover align-middle small">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Nama / Username</th>
+                                                    <th>Email Login (System)</th>
+                                                    <th>Role</th>
+                                                    <th>Terakhir Ubah Password</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="table-staf-body">
+                                                <tr><td colspan="4" class="text-center text-muted">Memuat data staf...</td></tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div><!-- /panel-pengaturan -->
+
+            <!-- ══════════════════════════════════════════════
+                 PANEL: DETAIL ORDER (HALAMAN BARU)
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-detail-order" class="tab-pane-custom" style="display:none;">
+                <div class="d-flex align-items-center mb-3">
+                    <button class="btn btn-light rounded-circle shadow-sm me-3" onclick="kembaliKeOrder()" title="Kembali ke Order">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h4 class="m-0 fw-bold header-title">Detail Pesanan</h4>
+                </div>
+                <div class="premium-card" id="detail-order-content">
+                    <!-- Konten detail order akan di-inject oleh script.js -->
+                    <div class="text-center py-5 text-muted"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>
+                </div>
+            </div>
+
+            <!-- ══════════════════════════════════════════════
+                 PANEL: RIWAYAT PELANGGAN (HALAMAN BARU)
+                 ══════════════════════════════════════════════ -->
+            <div id="panel-riwayat-pelanggan" class="tab-pane-custom" style="display:none;">
+                <div class="d-flex align-items-center mb-3">
+                    <button class="btn btn-light rounded-circle shadow-sm me-3" onclick="kembaliKePelanggan()" title="Kembali ke Pelanggan">
+                        <i class="fa-solid fa-arrow-left"></i>
+                    </button>
+                    <h4 class="m-0 fw-bold header-title">Riwayat Pelanggan</h4>
+                </div>
+                <div class="premium-card">
+                    <div id="riwayat-pelanggan-content">
+                        <div class="text-center py-5 text-muted"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>
+                    </div>
+                </div>
+            </div>
 
 
             <!-- ══════════════════════════════════════════════
                  MODALS
                  ══════════════════════════════════════════════ -->
 
-            <!-- Modal: Order Detail -->
-            <div class="modal fade no-print" id="detailOrderModal" tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog modal-dialog-centered">
-                    <div class="modal-content">
-                        <div class="modal-header bg-dark">
-                            <h5 class="modal-title" id="modal-title-id">Detail Item Order</h5>
-                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body" id="modal-content-body"></div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Modal: Customer History -->
-            <div class="modal fade" id="modalHistoryCustomer" tabindex="-1">
-                <div class="modal-dialog modal-dialog-scrollable modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title fw-bold">
-                                <i class="fa-solid fa-clock-rotate-left me-2"></i> History Customer
-                            </h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div id="history-customer-content">
-                                <div class="text-center py-4" style="color:var(--text-muted);">Tidak ada history</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Modals dihapus karena diganti SPA Panels -->
 
         </div><!-- /tab-panels -->
     </div><!-- /main-content -->
@@ -1267,6 +1351,33 @@
     </div><!-- /print-invoice-area -->
 
 
+    <!-- =========================================================
+         MODAL: BUKA KASIR (OPEN SHIFT)
+         ========================================================= -->
+    <div class="modal fade no-print" id="modalBukaKasir" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content" style="border:none; border-radius:12px; overflow:hidden;">
+                <div class="modal-header bg-success text-white py-2">
+                    <h6 class="modal-title fw-bold m-0"><i class="fa-solid fa-door-open me-1"></i> Buka Kasir</h6>
+                </div>
+                <div class="modal-body pb-4 pt-3 text-center">
+                    <div class="mb-3">
+                        <i class="fa-solid fa-cash-register text-success" style="font-size:3rem;"></i>
+                    </div>
+                    <p class="small text-muted mb-3">Toko baru saja dibuka / Sesi kasir baru. Silakan masukkan uang modal awal (kembalian laci) untuk hari ini.</p>
+                    <div class="text-start mb-3">
+                        <label class="form-label text-muted small fw-bold">Modal Awal Laci (Rp)</label>
+                        <input type="number" id="bk-modal-awal" class="form-control form-control-lg text-center fw-bold text-success" placeholder="0">
+                    </div>
+                    <button class="btn btn-success w-100 fw-bold" onclick="prosesBukaKasir()"><i class="fa-solid fa-play me-1"></i> Mulai Berjaga</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL CATAT PENGELUARAN (KAS KELUAR)
+
     <!-- ═══════════════════════════════════════════════════════════
          MODAL: PIN OWNER (PROTECTED ACCESS)
          ═══════════════════════════════════════════════════════════ -->
@@ -1307,11 +1418,67 @@
         </div>
     </div>
 
+    <!-- Modal: Ganti Password Wajib -->
+    <div class="modal fade no-print" id="modalGantiPassword"
+        data-bs-backdrop="static" data-bs-keyboard="false"
+        tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white border-0 justify-content-center py-3">
+                    <h6 class="modal-title fw-bold m-0 text-center">
+                        <i class="fa-solid fa-lock me-2"></i>Waktunya Ganti Password!
+                    </h6>
+                </div>
+                <div class="modal-body p-4">
+                    <p style="color:var(--text-sec); font-size:0.84rem;" class="mb-3 text-center">
+                        Keamanan akun sangat penting. Silakan perbarui password Anda untuk melanjutkan.
+                    </p>
+                    <div class="mb-2">
+                        <label class="form-label small fw-bold text-muted">Password Lama</label>
+                        <input type="password" id="input-pass-lama" class="form-control text-center fw-bold rounded-2">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">Password Baru</label>
+                        <input type="password" id="input-pass-baru" class="form-control text-center fw-bold rounded-2" placeholder="Min. 6 karakter">
+                    </div>
+                    <div id="pesan-eror-ganti-pass" class="d-none fw-bold mb-3 text-center" style="color:var(--rose); font-size:0.82rem;"></div>
+                    
+                    <button type="button" id="btn-proses-ganti-pass" class="btn btn-danger w-100 rounded-3 fw-bold py-2" onclick="prosesGantiPassword()">
+                        Perbarui Sekarang <i class="fa-solid fa-arrow-right ms-1"></i>
+                    </button>
+                    <div class="text-center mt-3">
+                        <button class="btn btn-link text-muted btn-sm fw-bold border-0 p-0" onclick="window.doLogout()">Logout Saja</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- ═══════════════════════════════════════════════════════════
          SCRIPTS
          ═══════════════════════════════════════════════════════════ -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- LAYAR PEMBUKA (WELCOME SCREEN FULL PAGE) -->
+    <div id="welcome-screen" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:var(--bs-indigo); z-index:9999; flex-direction:column; justify-content:center; align-items:center;">
+        <div class="card shadow-lg border-0" style="width:100%; max-width:450px; border-radius:1rem;">
+            <div class="card-body p-5 text-center">
+                <i class="fa-solid fa-cash-register fa-4x text-primary mb-3"></i>
+                <h3 class="fw-bold text-dark mb-1">Mulai Shift</h3>
+                <p class="text-muted mb-4">Selamat datang, <span id="buka-kasir-nama" class="fw-bold text-primary">Kasir</span>.<br>Masukkan uang Modal Awal di laci kasir.</p>
+                <div class="input-group mb-4">
+                    <span class="input-group-text bg-light fw-bold text-dark">Rp</span>
+                    <input type="text" id="bk-modal-awal" class="form-control form-control-lg fw-bold text-center" placeholder="0" oninput="formatRupiahInput(this)">
+                </div>
+                <button type="button" class="btn btn-primary btn-lg w-100 fw-bold" onclick="prosesBukaKasir()">
+                    Buka Aplikasi Kasir <i class="fa-solid fa-arrow-right ms-2"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+
     <script type="module" src="script.js"></script>
     <script type="module">
         // ── AUTH GUARD: Pastikan user sudah login sebelum bisa pakai aplikasi ──
@@ -1319,10 +1486,15 @@
         import { logoutUser } from './js/auth.js';
         import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (!user) {
                 // Belum login — redirect ke halaman login
                 window.location.replace('login.html');
+            } else {
+                // Sudah login, mari kita muat info session
+                if (window.initUserSession) {
+                    window.initUserSession(user);
+                }
             }
         });
 
@@ -1482,6 +1654,23 @@
         fixMobileLayout();
         window.addEventListener('resize', fixMobileLayout);
     </script>
+
+    <!-- Modal Hold Bills -->
+    <div class="modal fade no-print" id="modalHoldBills" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-info text-white">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-list-ul me-2"></i>Daftar Antrean Ditahan</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-0">
+                    <div id="list-hold-bills" class="p-3" style="max-height: 60vh; overflow-y: auto;">
+                        <div class="text-center text-muted py-3">Memuat...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
 </body>
 </html>

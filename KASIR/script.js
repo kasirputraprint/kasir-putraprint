@@ -1,7 +1,15 @@
-import { ref, set, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-import { db } from "./js/firebase-init.js";
+import { ref, set, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { db, auth } from "./js/firebase-init.js";
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { hashPIN, registerStaff } from "./js/role-manager.js";
+import "./js/audit.js";
+import "./js/security.js";
+import "./js/shortcuts.js";
+import "./js/hold-bill.js";
 
 let keranjang = [];
+window.getKeranjang = () => keranjang;
+window.setKeranjang = (k) => { keranjang = k; };
 let editIndex = -1;
 let listProduk = [];
 
@@ -40,6 +48,11 @@ window.setNominalInstan = function (nominal) {
 };
 
 window.onload = function () {
+    // Expose local functions to window for modules like hold-bill.js
+    window.renderKeranjangGlobal = renderKeranjang;
+    window.hapusDraftOtomatisGlobal = hapusDraftOtomatis;
+    window.simpanDraftOtomatisGlobal = simpanDraftOtomatis;
+
     // Kunci pengisian tanggal hari ini ke semua kalender sistem
     const hariIni = new Date().toISOString().split('T')[0];
 
@@ -141,6 +154,10 @@ window.resetFilterOrder = function () {
 // 🎯 MODUL PREMIUM: SIMPAN KEBIJAKAN SISTEM KE FIREBASE CLOUD
 // ========================================================
 window.simpanKebijakanSistemCloud = function () {
+    if (window.currentUserRole !== 'owner') {
+        Swal.fire('Akses Ditolak', 'Hanya Owner yang dapat mengubah Kebijakan Sistem Operasional.', 'error');
+        return;
+    }
     const dataKebijakan = {
         tarifPotong: parseInt(document.getElementById("set-tarif-potong").value) || 125,
         metodePembulatan: parseInt(document.getElementById("set-pembulatan").value),
@@ -314,7 +331,7 @@ function renderTableAntrean() {
         let hari = parts[0]?.padStart(2, "0");
         let bulan = bulanMap[parts[1]?.substring(0, 3)];
         let tahun = parts[2];
-        let tanggalOrder = `${tahun}-${bulan}-${hari}`; 
+        let tanggalOrder = `${tahun}-${bulan}-${hari}`;
 
         // Jalankan sensor pembatas rentang awal s/d rentang akhir kalender
         if (tglMulai && tanggalOrder < tglMulai) {
@@ -385,7 +402,7 @@ function renderTableAntrean() {
     let html = "";
     const maxRender = 150;
     const renderData = dataOrder.slice(0, maxRender);
-    
+
     renderData.forEach(o => {
         let statusDisplay = o.status;
         if (statusDisplay === "DESAIN" || statusDisplay === "CETAK" || statusDisplay === "FINISHING") {
@@ -424,7 +441,7 @@ function renderTableAntrean() {
         </tr>
         `;
     });
-    
+
     if (dataOrder.length > maxRender) {
         html += `
         <tr>
@@ -462,6 +479,8 @@ setTimeout(() => {
     }
 }, 500);
 
+window.unlockedTabs = window.unlockedTabs || [];
+
 window.switchTab = function (targetId, elem) {
     document.querySelectorAll('.sidebar-menu .menu-item').forEach(m => m.classList.remove('active'));
     elem.classList.add('active');
@@ -469,6 +488,15 @@ window.switchTab = function (targetId, elem) {
     document.getElementById(targetId).style.display = "block";
     document.getElementById("page-title").innerText = elem.innerText.trim();
     if (targetId === 'panel-laporan' || targetId === 'panel-dashboard') hitungDataDashboardDanLaporan();
+    if (targetId === 'panel-keuangan' && typeof renderDataKeuangan === 'function') renderDataKeuangan();
+
+    // AUTO-LOCK RESTRICTION: Jika pindah ke tab publik (Kasir, Order, Pelanggan, Dashboard)
+    // Maka semua gembok akan dikunci ulang secara otomatis!
+    const protectedTabs = ['panel-laporan', 'panel-pengaturan', 'panel-produk', 'panel-keuangan'];
+    if (!protectedTabs.includes(targetId)) {
+        window.overrideActive = false;
+        window.unlockedTabs = []; // Kunci ulang semua tab
+    }
 };
 
 // Variable internal penampung target tab menu sementara saat dikunci
@@ -476,6 +504,17 @@ let targetTabTerkunci = "";
 let targetElemenMenu = null;
 
 window.bukaTabProteksi = function (targetId, elem) {
+    if (window.currentUserRole === 'owner' || window.unlockedTabs.includes(targetId)) {
+        // Langsung buka jika owner atau tab INI sudah dibuka dengan PIN
+        window.overrideActive = true; // Aktifkan sementara untuk keperluan save data di dalam tab ini
+        window.switchTab(targetId, elem);
+        if (typeof window._setAllNavActive === "function" && elem.id) {
+            window._setAllNavActive(elem.id);
+        }
+        return;
+    }
+
+    // Jika staf biasa, minta PIN Owner
     targetTabTerkunci = targetId;
     targetElemenMenu = elem;
 
@@ -483,7 +522,7 @@ window.bukaTabProteksi = function (targetId, elem) {
 
     const modalEl = document.getElementById('modalPinOwnerPremium');
     const modalPin = new bootstrap.Modal(modalEl);
-    
+
     // Gunakan event bawaan Bootstrap agar kursor 100% selalu fokus setelah animasi modal selesai
     modalEl.addEventListener('shown.bs.modal', function focusPin() {
         const inputPin = document.getElementById("input-pin-premium");
@@ -505,39 +544,90 @@ window.clearAngkaPin = function () {
     if (document.getElementById("pesan-eror-pin")) document.getElementById("pesan-eror-pin").classList.add("d-none");
 };
 
-// Pengecekan PIN Owner — Validasi dari Firebase (AMAN, tidak bisa dilihat via F12)
+// Pengecekan PIN Owner — Validasi dengan HASH (AMAN, tidak bisa dilihat via F12 maupun database langsung)
 window.validasiPinPremiumOwner = async function () {
     const inputPin = document.getElementById("input-pin-premium").value.trim();
     if (!inputPin) return;
 
     try {
-        const { get, ref: dbRef } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js");
-        const snapshot = await get(dbRef(db, 'settings/pin_owner'));
-        // Jika belum pernah diset di Firebase, fallback ke "1234" (harap segera ganti!)
-        const pinSistem = snapshot.exists() ? snapshot.val() : "1234";
+        const snapshot = await get(ref(db, 'settings/pin_owner_hash'));
+        const savedHash = snapshot.exists() ? snapshot.val() : null;
 
-        if (inputPin === String(pinSistem)) {
-            const modalEl = document.getElementById('modalPinOwnerPremium');
-            const modalInst = bootstrap.Modal.getInstance(modalEl);
-            if (modalInst) modalInst.hide();
-
-            if (targetTabTerkunci && targetElemenMenu) {
-                window.switchTab(targetTabTerkunci, targetElemenMenu);
-                // Sinkronkan warna icon (active state) di menu bawah/mobile
-                if (typeof window._setAllNavActive === "function" && targetElemenMenu.id) {
-                    window._setAllNavActive(targetElemenMenu.id);
+        // Jika owner belum pernah atur PIN Hash, gunakan bypass darurat (Hanya untuk masa transisi awal)
+        if (!savedHash) {
+            const oldSnapshot = await get(ref(db, 'settings/pin_owner'));
+            const oldPin = oldSnapshot.exists() ? oldSnapshot.val() : "1234";
+            if (inputPin === String(oldPin)) {
+                try {
+                    // Coba konversi diam-diam ke hash demi keamanan selanjutnya
+                    const newHash = await hashPIN(inputPin);
+                    await set(ref(db, 'settings/pin_owner_hash'), newHash);
+                } catch (err) {
+                    console.warn("Tidak dapat auto-migrate PIN hash (Kasir tidak punya akses write ke settings). Lanjut masuk.");
                 }
+                berhasilOverride();
+                return;
             }
+        }
 
-            showNotification("Akses Terverifikasi! Selamat Datang Owner.", "success");
+        // Cek PIN secara HASH
+        const inputHash = await hashPIN(inputPin);
+        if (inputHash === savedHash) {
+            berhasilOverride();
         } else {
-            document.getElementById("pesan-eror-pin").classList.remove("d-none");
-            document.getElementById("input-pin-premium").value = "";
-            document.getElementById("input-pin-premium").focus();
+            gagalOverride();
         }
     } catch (err) {
         console.error("Gagal validasi PIN:", err);
-        document.getElementById("pesan-eror-pin").classList.remove("d-none");
+        gagalOverride();
+    }
+};
+
+function berhasilOverride() {
+    window.overrideActive = true;
+    window.unlockedTabs = window.unlockedTabs || [];
+    window.unlockedTabs.push(targetTabTerkunci); // Catat tab spesifik yang baru saja dibuka
+
+    const modalEl = document.getElementById('modalPinOwnerPremium');
+    const modalInst = bootstrap.Modal.getInstance(modalEl);
+    if (modalInst) modalInst.hide();
+
+    if (targetTabTerkunci && targetElemenMenu) {
+        window.switchTab(targetTabTerkunci, targetElemenMenu);
+        if (typeof window._setAllNavActive === "function" && targetElemenMenu.id) {
+            window._setAllNavActive(targetElemenMenu.id);
+        }
+    }
+    showNotification("Akses Override Diizinkan!", "success");
+}
+
+function gagalOverride() {
+    document.getElementById("pesan-eror-pin").classList.remove("d-none");
+    document.getElementById("input-pin-premium").value = "";
+    document.getElementById("input-pin-premium").focus();
+}
+
+window.simpanPinBaru = async function () {
+    if (window.currentUserRole !== 'owner' && !window.overrideActive) {
+        alert("Akses ditolak. Hanya owner yang dapat mengubah PIN & Setting.");
+        return;
+    }
+    const pinBaru = document.getElementById("setting-pin-baru").value.trim();
+    const interval = document.getElementById("setting-interval-password").value.trim();
+
+    try {
+        if (pinBaru) {
+            const hashBaru = await hashPIN(pinBaru);
+            await set(ref(db, 'settings/pin_owner_hash'), hashBaru);
+            document.getElementById("setting-pin-baru").value = "";
+        }
+        if (interval) {
+            await set(ref(db, 'settings/system_policy/passwordChangeIntervalDays'), parseInt(interval));
+        }
+        showNotification("Pengaturan Keamanan Berhasil Disimpan!", "success");
+    } catch (err) {
+        console.error(err);
+        showNotification("Gagal menyimpan keamanan.", "danger");
     }
 };
 
@@ -604,13 +694,13 @@ window.hitungDataDashboardDanLaporan = function hitungDataDashboardDanLaporan() 
         let bulanStr = bulanMap[namaBulan] || "01";
         let tahunStr = parts[2] || "2026";
         let tanggalNotaFormatISO = `${tahunStr}-${bulanStr}-${hariStr}`;
-        
+
         // Simpan ISO date untuk keperluan sorting
         order.tanggalISO = tanggalNotaFormatISO;
 
         // PERHITUNGAN KHUSUS TAB LAPORAN
         if (tanggalNotaFormatISO >= batasAwalStr && tanggalNotaFormatISO <= batasAkhirStr) {
-            
+
             let cariVal = (document.getElementById("report-search-input")?.value || "").toLowerCase();
             let idLower = (order.notaId || "").toLowerCase();
             let nLower = (order.nama || "").toLowerCase();
@@ -654,7 +744,7 @@ window.hitungDataDashboardDanLaporan = function hitungDataDashboardDanLaporan() 
             if (window.currentLaporanSort === 'tanggal') { valA = a.tanggalISO; valB = b.tanggalISO; }
             if (typeof valA === 'string') valA = valA.toLowerCase();
             if (typeof valB === 'string') valB = valB.toLowerCase();
-            
+
             if (valA < valB) return window.currentLaporanDir === "asc" ? -1 : 1;
             if (valA > valB) return window.currentLaporanDir === "asc" ? 1 : -1;
             return 0;
@@ -674,9 +764,9 @@ window.hitungDataDashboardDanLaporan = function hitungDataDashboardDanLaporan() 
             if (order.status === "CANCEL" && order.alasanCancel) {
                 statusKeterangan += `<div class="mt-1 small fw-bold" style="color:var(--rose);">Alasan: ${order.alasanCancel}</div>`;
             }
-            
-            let aksiTombol = order.status === "CANCEL" ? 
-                `<span class="badge bg-secondary text-white opacity-50"><i class="fa-solid fa-ban"></i></span>` : 
+
+            let aksiTombol = order.status === "CANCEL" ?
+                `<span class="badge bg-secondary text-white opacity-50"><i class="fa-solid fa-ban"></i></span>` :
                 `<button class="btn btn-sm btn-outline-danger fw-bold" onclick="cancelOrder('${order.notaId}')">Cancel</button>`;
 
             reportHtmlStr += `
@@ -700,7 +790,7 @@ window.hitungDataDashboardDanLaporan = function hitungDataDashboardDanLaporan() 
             let valB = b[window.currentDashboardSort];
             if (typeof valA === 'string') valA = valA.toLowerCase();
             if (typeof valB === 'string') valB = valB.toLowerCase();
-            
+
             if (valA < valB) return window.currentDashboardDir === "asc" ? -1 : 1;
             if (valA > valB) return window.currentDashboardDir === "asc" ? 1 : -1;
             return 0;
@@ -713,7 +803,7 @@ window.hitungDataDashboardDanLaporan = function hitungDataDashboardDanLaporan() 
         dataDashboardRecent.forEach(order => {
             let badgeClass = "b-pending";
             if (order.status === "PROSES") badgeClass = "b-desain";
-            
+
             dbRecentHtmlStr += `
             <tr>
                 <td class="fw-bold">#${order.notaId}</td>
@@ -823,6 +913,11 @@ window.hitungDataDashboardDanLaporan = function hitungDataDashboardDanLaporan() 
     // Jalankan penggambaran ulang kedua grafik secara serempak
     renderVisualGrafikProduk(top5Produk);
     renderVisualGrafik7Hari(listTanggalDinamis);
+    
+    // 📦 Tampilkan Peringatan Stok Menipis
+    if (typeof window.renderLowStockWarning === 'function') {
+        window.renderLowStockWarning();
+    }
 }
 
 window.cancelOrder = function (notaId) {
@@ -900,27 +995,27 @@ window.tambahCustomJobKeKeranjang = function () {
     const qtyInput = parseInt(document.getElementById("custom-job-qty")?.value) || 1;
 
     if (namaInput === "") {
-        Swal.fire({icon: 'error', title: 'Oops...', text: 'Nama pesanan kustom tidak boleh kosong!'});
+        Swal.fire({ icon: 'error', title: 'Oops...', text: 'Nama pesanan kustom tidak boleh kosong!' });
         return;
     }
     if (hargaInput <= 0) {
-        Swal.fire({icon: 'error', title: 'Oops...', text: 'Harga harus lebih besar dari 0!'});
+        Swal.fire({ icon: 'error', title: 'Oops...', text: 'Harga harus lebih besar dari 0!' });
         return;
     }
 
-            // Karakteristik data kustom disesuaikan agar cocok dengan renderKeranjang bawaan
-            const customItem = {
-                baseNama: namaInput,
-                nama: `[KUSTOM] ${namaInput}`,
-                varian: "-",
-                qty: qtyInput,
-                hargaSatuan: hargaInput,
-                panjang: 1,
-                lebar: 1,
-                jenisLayanan: "pcs",
-                finishingPotong: 0,
-                subtotal: hargaInput * qtyInput
-            };
+    // Karakteristik data kustom disesuaikan agar cocok dengan renderKeranjang bawaan
+    const customItem = {
+        baseNama: namaInput,
+        nama: `[KUSTOM] ${namaInput}`,
+        varian: "-",
+        qty: qtyInput,
+        hargaSatuan: hargaInput,
+        panjang: 1,
+        lebar: 1,
+        jenisLayanan: "pcs",
+        finishingPotong: 0,
+        subtotal: hargaInput * qtyInput
+    };
 
     keranjang.push(customItem);
     renderKeranjang();
@@ -961,12 +1056,18 @@ window.pilihProduk = function (id) {
         document.getElementById("box-ukuran-lebar").style.display = "none";
     }
     document.getElementById("box-toggle-potong").style.display = "block";
-    document.getElementById("spesifikasi-box").style.display = "block";
-
+    
     let defaultVarian = produkTerpilih.varian && produkTerpilih.varian.length > 0 ? produkTerpilih.varian[0] : "-";
 
     if (editIndex < 0) {
-        tambahAtauUpdateKeranjang(produkTerpilih, 1, defaultVarian, 1, 1, false);
+        if (jenisLayanan === "pcs" || jenisLayanan === "false" || !jenisLayanan) {
+            document.getElementById("spesifikasi-box").style.display = "none";
+            tambahAtauUpdateKeranjang(produkTerpilih, 1, defaultVarian, 1, 1, false);
+        } else {
+            document.getElementById("spesifikasi-box").style.display = "block";
+        }
+    } else {
+        document.getElementById("spesifikasi-box").style.display = "block";
     }
 
     let baseNama = produkTerpilih.nama;
@@ -1131,20 +1232,20 @@ function renderKeranjang() {
         document.getElementById("cart-total").innerText = "Rp 0";
         document.getElementById("payment-sisa").innerText = "Rp 0";
         let mockTotal = document.getElementById("cart-total-mock");
-        if(mockTotal) mockTotal.innerText = "Rp 0";
+        if (mockTotal) mockTotal.innerText = "Rp 0";
         let nominalDiskonElem = document.getElementById("cart-diskon-nominal");
-        if(nominalDiskonElem) nominalDiskonElem.innerText = "- Rp 0";
+        if (nominalDiskonElem) nominalDiskonElem.innerText = "- Rp 0";
         let badgeCount = document.getElementById("cart-badge-count");
-        if(badgeCount) badgeCount.innerText = "0";
+        if (badgeCount) badgeCount.innerText = "0";
         document.getElementById("payment-diskon").value = "0";
-        
+
         simpanDraftOtomatis();
         return;
     }
 
-        box.innerHTML = `<div id="cart-item-list" class="d-flex flex-column gap-2 pb-2"></div>`;
-        
-        const listContainer = document.getElementById("cart-item-list");
+    box.innerHTML = `<div id="cart-item-list" class="d-flex flex-column gap-2 pb-2"></div>`;
+
+    const listContainer = document.getElementById("cart-item-list");
 
     keranjang.forEach((item, idx) => {
 
@@ -1159,14 +1260,14 @@ function renderKeranjang() {
         card.className = 'p-2 rounded-3 border position-relative';
         card.style.background = 'var(--bg-elevated)';
         card.style.transition = 'all 0.2s ease';
-        card.onmouseover = function() { this.style.borderColor = 'var(--accent)'; };
-        card.onmouseout = function() { this.style.borderColor = 'var(--border-default)'; };
-        card.onclick = function() { editItemKeranjang(idx); };
-        
-        let varianHtml = (item.varian && item.varian.trim() !== "" && item.varian !== "-") ? 
+        card.onmouseover = function () { this.style.borderColor = 'var(--accent)'; };
+        card.onmouseout = function () { this.style.borderColor = 'var(--border-default)'; };
+        card.onclick = function () { editItemKeranjang(idx); };
+
+        let varianHtml = (item.varian && item.varian.trim() !== "" && item.varian !== "-") ?
             `<div style="font-size: 0.72rem; color: var(--text-muted);">Varian: ${item.varian}</div>` : "";
-            
-        let finishingHtml = finishingPotong > 0 ? 
+
+        let finishingHtml = finishingPotong > 0 ?
             `<div class="mt-1" style="font-size: 0.7rem; color: var(--rose);"><i class="fa-solid fa-scissors fa-sm me-1"></i>Finishing: Rp ${finishingPotong.toLocaleString('id-ID')}</div>` : "";
 
         card.innerHTML = `
@@ -1188,15 +1289,15 @@ function renderKeranjang() {
                 </div>
             </div>
         `;
-        
+
         listContainer.appendChild(card);
     });
 
     // Update cart totals and discount by calling hitungSisaTagihan
     hitungSisaTagihan();
-    
+
     let badgeCount = document.getElementById("cart-badge-count");
-    if(badgeCount) badgeCount.innerText = keranjang.length;
+    if (badgeCount) badgeCount.innerText = keranjang.length;
 
     simpanDraftOtomatis();
 
@@ -1261,7 +1362,7 @@ window.editItemKeranjang = function (index) {
 
     document.getElementById("prod-lebar").value =
         item.lebar || 1;
-        
+
     // HARGA MANUAL
     document.getElementById("prod-harga-manual").value = item.hargaSatuan || 0;
 
@@ -1416,7 +1517,7 @@ window.bukaHistoryCustomer = function (nama) {
                 let textUkuran = (showUkuran && i.panjang && i.lebar) ? `<br><small class="text-muted">Ukuran: ${i.panjang}m x ${i.lebar}m</small>` : '';
                 let textFinishing = (i.finishingPotong > 0) ? `<br><small class="text-primary">Finishing: Rp ${i.finishingPotong.toLocaleString('id-ID')}</small>` : '';
                 let varian = i.varian && i.varian !== '-' ? `<span class="badge bg-secondary ms-1">${i.varian}</span>` : '';
-                
+
                 return `
                 <tr>
                     <td class="ps-0 py-2">
@@ -1471,36 +1572,42 @@ window.bukaHistoryCustomer = function (nama) {
         html += `</div>`; // Tutup div accordion scrollable
     }
 
-    document.getElementById(
-        "history-customer-content"
-    ).innerHTML = html;
-
-    new bootstrap.Modal(
-        document.getElementById("modalHistoryCustomer")
-    ).show();
+    document.getElementById("riwayat-pelanggan-content").innerHTML = html;
+    window.tampilkanPanelSPA("panel-riwayat-pelanggan");
 
 }
 
 window.hitungSisaTagihan = function () {
     let subtotal = keranjang.reduce((sum, i) => sum + i.subtotal, 0);
-    
+
     let mockTotal = document.getElementById("cart-total-mock");
-    if(mockTotal) mockTotal.innerText = `Rp ${lakukanPembulatanKasir(subtotal).toLocaleString('id-ID')}`;
-    
+    if (mockTotal) mockTotal.innerText = `Rp ${lakukanPembulatanKasir(subtotal).toLocaleString('id-ID')}`;
+
     let diskonPersen = parseInt(document.getElementById("payment-diskon")?.value) || 0;
     if (diskonPersen < 0) diskonPersen = 0;
     if (diskonPersen > 100) diskonPersen = 100;
-    
+
     let diskonNominal = (subtotal * diskonPersen) / 100;
     let nominalDiskonElem = document.getElementById("cart-diskon-nominal");
     if (nominalDiskonElem) nominalDiskonElem.innerText = `- Rp ${lakukanPembulatanKasir(diskonNominal).toLocaleString('id-ID')}`;
-    
+
     let totalAkhir = Math.max(0, lakukanPembulatanKasir(subtotal) - lakukanPembulatanKasir(diskonNominal));
-    
+
     let dp = parseInt(document.getElementById("payment-dp").value) || 0;
-    
+
     document.getElementById("cart-total").innerText = `Rp ${totalAkhir.toLocaleString('id-ID')}`;
-    document.getElementById("payment-sisa").innerText = `Rp ${(totalAkhir - dp).toLocaleString('id-ID')}`;
+    let selisih = totalAkhir - dp;
+    let labelSisa = document.getElementById("label-payment-sisa");
+
+    if (selisih < 0) {
+        if (labelSisa) labelSisa.innerText = "Kembali:";
+        document.getElementById("payment-sisa").innerText = `Rp ${Math.abs(selisih).toLocaleString('id-ID')}`;
+        document.getElementById("payment-sisa").style.color = "var(--emerald)";
+    } else {
+        if (labelSisa) labelSisa.innerText = "Sisa:";
+        document.getElementById("payment-sisa").innerText = `Rp ${selisih.toLocaleString('id-ID')}`;
+        document.getElementById("payment-sisa").style.color = "var(--rose)";
+    }
 };
 
 window.generateBarisPotongDinamis = function () {
@@ -1568,10 +1675,10 @@ window.hitungPreviewHargaSistem = function () {
     let pBox = document.getElementById("preview-hitung-sistem-text");
     let qty = parseInt(document.getElementById("prod-qty").value) || 1;
     let hargaDinamis = ambilHargaGrosirSistem(produkTerpilih.nama, qty);
-    
+
     // Set system default unit price to the manual input box so user can override it
     document.getElementById("prod-harga-manual").value = hargaDinamis;
-    
+
     window.hitungPreviewHargaManual();
 };
 
@@ -1609,7 +1716,7 @@ window.hitungPreviewHargaManual = function () {
     }
 
     let grandTotal = subtotalProduk + finishingPotong;
-    if(pBox) pBox.innerText = `Rp ${grandTotal.toLocaleString('id-ID')}`;
+    if (pBox) pBox.innerText = `Rp ${grandTotal.toLocaleString('id-ID')}`;
 };
 
 window.cariPelangganLama = function () {
@@ -1742,7 +1849,10 @@ function generateNotaId() {
     return `${prefix}-${nextSeq}`;
 }
 
-function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft = false) {
+function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft = false, paymentMethod = 'Tunai', uangDiberikan = null) {
+    if (uangDiberikan === null) uangDiberikan = dp;
+    let kembali = uangDiberikan > total ? uangDiberikan - total : 0;
+
     // 1. Tarik komponen identitas usaha live dari input form pengaturan
     const namaTokoLive = document.getElementById("set-nama-toko")?.value || "Putra Print";
     const alamatTokoLive = document.getElementById("set-alamat-toko")?.value || "Solusi Cetak Terbaik & Cepat";
@@ -1838,6 +1948,7 @@ function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft =
         <table>
             <tr><td>ID NOTA :</td><td class="text-right fw-bold">${isDraft ? 'DRAFT' : '#' + notaId}</td></tr>
             <tr><td>TANGGAL :</td><td class="text-right">${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td></tr>
+            <tr><td>KASIR   :</td><td class="text-right">${window.currentUserNama || 'Kasir'}</td></tr>
             <tr><td>CUST    :</td><td class="text-right">${nama || 'Umum'}</td></tr>
             <tr><td>TELP    :</td><td class="text-right">${phone || '-'}</td></tr>
         </table>
@@ -1861,9 +1972,14 @@ function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft =
                 <td class="text-right fw-bold">Rp ${total.toLocaleString('id-ID')}</td>
             </tr>
             <tr>
-                <td>TERBAYAR:</td>
-                <td class="text-right">Rp ${dp.toLocaleString('id-ID')}</td>
+                <td>TERBAYAR (${paymentMethod}):</td>
+                <td class="text-right">Rp ${uangDiberikan.toLocaleString('id-ID')}</td>
             </tr>
+            ${kembali > 0 ? `
+            <tr>
+                <td>KEMBALIAN:</td>
+                <td class="text-right fw-bold" style="color:#000;">Rp ${kembali.toLocaleString('id-ID')}</td>
+            </tr>` : ''}
             <tr class="fw-bold">
                 <td>SISA TAGIHAN:</td>
                 <td class="text-right">Rp ${sisa.toLocaleString('id-ID')}</td>
@@ -1979,7 +2095,8 @@ window.simpanDraftPNG = function () {
     let notaId = generateNotaId().split('-')[1];
 
     // Set status draft true
-    siapkanAreaPrint(notaId, nama, phone, keranjang, totalBulat, dp, sisaTagihan, true);
+    let paymentMethod = document.getElementById("payment-method")?.value || "Tunai";
+    siapkanAreaPrint(notaId, nama, phone, keranjang, totalBulat, Math.min(dp, totalBulat), Math.max(0, totalBulat - dp), true, paymentMethod, dp);
 
     const printArea = document.getElementById("print-invoice-area");
 
@@ -2010,51 +2127,88 @@ window.simpanDraftPNG = function () {
 };
 
 window.simpanTransaksi = function (tipe) {
-    // ========================================================
-    // LOCK BUTTON SAVE AGAR TIDAK DOUBLE INPUT DATA CLOUD
-    // ========================================================
-    const btnSave = document.getElementById("btn-save-transaksi");
-    const btnSavePrint = document.getElementById("btn-save-print");
-    const btnSaveWA = document.getElementById("btn-save-wa");
-
     const nama = document.getElementById("cust-name").value;
     const namaCustomer = nama ? nama.trim() : "";
 
     // VALIDASI FORM UTAMA KASIR
     if (namaCustomer === "") {
-        Swal.fire({icon: 'warning', title: 'Data Belum Lengkap', text: 'Nama customer wajib diisi!'});
+        Swal.fire({ icon: 'warning', title: 'Data Belum Lengkap', text: 'Nama customer wajib diisi!' });
         return;
     }
 
     if (keranjang.length === 0) {
-        Swal.fire({icon: 'warning', title: 'Keranjang Kosong', text: 'Keranjang masih kosong!'});
+        Swal.fire({ icon: 'warning', title: 'Keranjang Kosong', text: 'Keranjang masih kosong!' });
         return;
     }
 
-    // GANTI TEKS INDIKATOR LOADING BUTTON SINKRON
-    if (btnSave) btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Menyimpan...';
+    let dp = parseInt(document.getElementById("payment-dp").value) || 0;
+    let total = keranjang.reduce((sum, i) => sum + i.subtotal, 0);
+    let totalBulat = lakukanPembulatanKasir(total);
+
+    // CEK APAKAH UANG KURANG DARI TOTAL (POTENSI PIUTANG)
+    if (dp < totalBulat) {
+        let sisa = totalBulat - dp;
+        Swal.fire({
+            title: 'Pembayaran Kurang!',
+            html: `Uang dibayar kurang <b>Rp ${sisa.toLocaleString('id-ID')}</b> dari total tagihan.<br><br>Sisa ini otomatis akan dicatat sebagai <b>Piutang (Hutang)</b> pelanggan.<br><br>Apakah Anda yakin ingin melanjutkan?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e63946',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Ya, Lanjutkan (Masuk Piutang)',
+            cancelButtonText: 'Batal'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                lanjutTanyaStrukAtauSimpan(tipe);
+            }
+        });
+    } else {
+        lanjutTanyaStrukAtauSimpan(tipe);
+    }
+};
+
+function lanjutTanyaStrukAtauSimpan(tipe) {
+    if (tipe === 'ASK') {
+        Swal.fire({
+            title: 'Cetak Struk?',
+            text: "Apakah Anda ingin mencetak struk untuk transaksi ini?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: '<i class="fa-solid fa-print"></i> Ya, Cetak',
+            cancelButtonText: 'Tidak, Simpan Saja'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                _prosesSimpanTransaksiCloud('PRINT');
+            } else {
+                _prosesSimpanTransaksiCloud('SAJA');
+            }
+        });
+    } else {
+        _prosesSimpanTransaksiCloud(tipe);
+    }
+}
+
+function _prosesSimpanTransaksiCloud(tipe) {
+    const btnSave = document.getElementById("btn-save-transaksi");
+    const btnSavePrint = document.getElementById("btn-save-print");
+    const btnSaveWA = document.getElementById("btn-save-wa");
+
     if (btnSavePrint) btnSavePrint.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Memproses...';
-    if (btnSaveWA) btnSaveWA.innerHTML = '<i class="fa-solid fa-spinner fa-spin me-1"></i> Memproses...';
-
-    if (btnSave) btnSave.disabled = true;
     if (btnSavePrint) btnSavePrint.disabled = true;
-    if (btnSaveWA) btnSaveWA.disabled = true;
 
+    const nama = document.getElementById("cust-name").value;
     let phone = document.getElementById("cust-phone").value || "-";
     let dp = parseInt(document.getElementById("payment-dp").value) || 0;
+    let paymentMethod = document.getElementById("payment-method")?.value || "Tunai";
 
     let total = keranjang.reduce((sum, i) => sum + i.subtotal, 0);
     let totalBulat = lakukanPembulatanKasir(total);
 
-    // VALIDASI BATASAN NOMINAL DP
+    let uangDiberikan = dp;
     if (dp > totalBulat) {
-        showNotification("DP tidak boleh lebih besar dari total!", "danger");
-
-        // Kembalikan tombol ke kondisi semula jika gagal validasi
-        if (btnSave) { btnSave.disabled = false; btnSave.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Simpan Transaksi'; }
-        if (btnSavePrint) { btnSavePrint.disabled = false; btnSavePrint.innerHTML = '<i class="fa-solid fa-print me-1"></i> Simpan & Cetak Struk'; }
-        if (btnSaveWA) { btnSaveWA.disabled = false; btnSaveWA.innerHTML = '<i class="fa-brands fa-whatsapp me-1"></i> Simpan & Kirim WA'; }
-        return;
+        dp = totalBulat; // Masuk ke sistem hanya sebesar total tagihan (Lunas)
     }
 
     let sisaTagihan = totalBulat - dp;
@@ -2071,7 +2225,11 @@ window.simpanTransaksi = function (tipe) {
     const orderObj = {
         notaId: notaId, tanggal: tgl, nama: nama, phone: phone,
         totalBelanja: totalBulat, dpMasuk: dp, sisaTagihan: sisaTagihan,
-        status: "PENDING", item: itemsSnapshot
+        status: "PENDING", item: itemsSnapshot,
+        kasir: window.currentUserNama || 'Kasir',
+        paymentMethod: paymentMethod,
+        uangDiterima: uangDiberikan,
+        kembalian: (uangDiberikan > totalBulat ? uangDiberikan - totalBulat : 0)
     };
 
     // PROSES SIMPAN KE DATABASE FIREBASE CLOUD SOLUSI CETAK
@@ -2085,6 +2243,10 @@ window.simpanTransaksi = function (tipe) {
             phone: phone
         });
 
+        if (typeof window.logAktivitas === 'function') {
+            window.logAktivitas(editIndex >= 0 ? "EDIT_TRANSAKSI" : "TRANSAKSI_BARU", `Nota #${notaId} senilai Rp ${totalBulat.toLocaleString('id-ID')}`);
+        }
+
         showNotification("Sukses Disimpan ke Database!", "primary");
         hapusDraftOtomatis();
 
@@ -2097,12 +2259,12 @@ window.simpanTransaksi = function (tipe) {
 
         if (tipe === 'PRINT') {
             // 😎 CUKUP PANGGIL INI SAJA, PERINTAH WINDOW.PRINT() DI BAWAHNYA DIHAPUS!
-            siapkanAreaPrint(notaId, nama, phone, itemsSnapshot, totalBulat, dp, sisaTagihan, false);
+            siapkanAreaPrint(notaId, nama, phone, itemsSnapshot, totalBulat, dp, sisaTagihan, false, paymentMethod, uangDiberikan);
         }
 
         // KEMBALIKAN KONDISI TOMBOL ASLI SETELAH BERHASIL
         if (btnSave) { btnSave.disabled = false; btnSave.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Simpan Transaksi'; }
-        if (btnSavePrint) { btnSavePrint.disabled = false; btnSavePrint.innerHTML = '<i class="fa-solid fa-print me-1"></i> Simpan & Cetak Struk'; }
+        if (btnSavePrint) { btnSavePrint.disabled = false; btnSavePrint.innerHTML = '<i class="fa-solid fa-money-bill-wave d-block mb-1"></i> BAYAR SEKARANG'; }
         if (btnSaveWA) { btnSaveWA.disabled = false; btnSaveWA.innerHTML = '<i class="fa-brands fa-whatsapp me-1"></i> Simpan & Kirim WA'; }
 
         // RESET UTUH FORM KASIR SIAP MELAYANI PELANGGAN SELANJUTNYA
@@ -2118,7 +2280,7 @@ window.simpanTransaksi = function (tipe) {
         .catch(err => {
             showNotification("Gagal Menyimpan Transaksi", "danger");
             if (btnSave) { btnSave.disabled = false; btnSave.innerHTML = '<i class="fa-solid fa-floppy-disk me-1"></i> Simpan Transaksi'; }
-            if (btnSavePrint) { btnSavePrint.disabled = false; btnSavePrint.innerHTML = '<i class="fa-solid fa-print me-1"></i> Simpan & Cetak Struk'; }
+            if (btnSavePrint) { btnSavePrint.disabled = false; btnSavePrint.innerHTML = '<i class="fa-solid fa-money-bill-wave d-block mb-1"></i> BAYAR SEKARANG'; }
             if (btnSaveWA) { btnSaveWA.disabled = false; btnSaveWA.innerHTML = '<i class="fa-brands fa-whatsapp me-1"></i> Simpan & Kirim WA'; }
         });
 };
@@ -2136,7 +2298,66 @@ function listenDataCloud() {
 }
 
 window.gantiStatusWorkflow = function (id, val) {
-    update(ref(db, 'orders/' + id), { status: val }).then(() => hitungDataDashboardDanLaporan());
+    const oldOrder = masterOrdersCache[id];
+    if (oldOrder && oldOrder.status === 'SELESAI' && window.currentUserRole !== 'owner') {
+        Swal.fire("Akses Ditolak", "Hanya Owner yang bisa mengubah status transaksi yang sudah SELESAI.", "error");
+        // Re-render UI to revert the select box change
+        if (typeof window.hitungDataDashboardDanLaporan === 'function') window.hitungDataDashboardDanLaporan();
+        return;
+    }
+
+    update(ref(db, 'orders/' + id), { status: val }).then(() => {
+        if (typeof window.logAktivitas === 'function') {
+            window.logAktivitas("UBAH_STATUS", `Order #${id} menjadi ${val}`);
+        }
+        
+        // 📦 SELECTIVE INVENTORY: Potong stok jika berubah menjadi SELESAI
+        if (val === 'SELESAI' && (!oldOrder || oldOrder.status !== 'SELESAI')) {
+            const itemsToDeduct = oldOrder ? (oldOrder.item || []) : [];
+            itemsToDeduct.forEach(item => {
+                const prodRef = ref(db, 'catalog_products/' + item.id);
+                get(prodRef).then((snap) => {
+                    if (snap.exists()) {
+                        const prodData = snap.val();
+                        // Hanya potong jika stokFisik bukan null/undefined
+                        if (prodData.stokFisik !== undefined && prodData.stokFisik !== null) {
+                            let sisaStok = prodData.stokFisik - parseInt(item.qty || 1);
+                            update(prodRef, { stokFisik: sisaStok });
+                        }
+                    }
+                });
+            });
+            
+            // 📲 NOTIFIKASI WA PESANAN SELESAI
+            if (oldOrder && oldOrder.phone) {
+                Swal.fire({
+                    title: 'Pesanan Selesai!',
+                    text: 'Kirim info ke pelanggan via WhatsApp bahwa pesanan sudah siap diambil?',
+                    icon: 'success',
+                    showCancelButton: true,
+                    confirmButtonColor: '#25D366',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fa-brands fa-whatsapp"></i> Ya, Kirim WA',
+                    cancelButtonText: 'Tidak Perlu'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        let waText = encodeURIComponent(`Halo Kak ${oldOrder.nama}, pesanan cetak kamu di Putra Print (Nota #${oldOrder.notaId}) sudah selesai dan siap diambil ya! Terima kasih.`);
+                        let waLink = `https://api.whatsapp.com/send?phone=${oldOrder.phone}&text=${waText}`;
+                        window.open(waLink, '_blank');
+                    }
+                });
+            } else {
+                Swal.fire({
+                    title: 'Pesanan Selesai!',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+        }
+        
+        if (typeof window.hitungDataDashboardDanLaporan === 'function') window.hitungDataDashboardDanLaporan();
+    });
 };
 
 function listenDatabasePelanggan() {
@@ -2192,11 +2413,14 @@ function listenDatabasePelanggan() {
 }
 
 window.simpanPengaturanToko = function () {
+    if (window.currentUserRole !== 'owner') {
+        Swal.fire('Akses Ditolak', 'Hanya Owner yang dapat menyimpan pengaturan toko. PIN ini hanya memberikan akses pantau.', 'error');
+        return;
+    }
     const data = {
         namaToko: document.getElementById("set-nama-toko").value,
         waToko: document.getElementById("set-wa-toko").value,
         alamat: document.getElementById("set-alamat-toko").value,
-        kasir: document.getElementById("set-kasir-nama").value,
         catatanWa: document.getElementById("set-catatan-wa").value // <-- Tambahan sinkronisasi teks catatan WA
     };
     set(ref(db, 'settings/profile'), data).then(() => showNotification("Profil Identitas Usaha Disimpan!", "success"));
@@ -2214,9 +2438,7 @@ function loadPengaturanSistem() {
             if (document.getElementById("set-wa-toko")) document.getElementById("set-wa-toko").value = data.waToko || "";
             if (document.getElementById("set-alamat-toko")) document.getElementById("set-alamat-toko").value = data.alamat || "";
             if (document.getElementById("set-catatan-wa")) document.getElementById("set-catatan-wa").value = data.catatanWa || "";
-            if (document.getElementById("set-kasir-nama")) document.getElementById("set-kasir-nama").value = data.kasir || "Bagus Prayoga";
 
-            if (document.getElementById("sb-admin-name")) document.getElementById("sb-admin-name").innerText = data.kasir || "Bagus Prayoga";
             if (document.getElementById("p-alamat-display")) document.getElementById("p-alamat-display").innerText = data.alamat || "";
             if (document.getElementById("p-wa-display")) document.getElementById("p-wa-display").innerText = data.waToko || "";
         }
@@ -2331,6 +2553,10 @@ onclick="hapusProdukDariAdmin('${p.id}')"
 }
 
 window.simpanProdukDariAdmin = function () {
+    if (window.currentUserRole !== 'owner') {
+        Swal.fire('Akses Ditolak', 'Staf tidak berhak mengubah/menambahkan data produk utama.', 'error');
+        return;
+    }
     let id = document.getElementById("adm-prod-id").value || "PROD-" + Date.now();
     const data = {
         id: id,
@@ -2342,7 +2568,9 @@ window.simpanProdukDariAdmin = function () {
         varian: document.getElementById("adm-prod-varian").value.split(',').map(v => v.trim()),
         // 💰 DATA GROSIR BARU SINKRON KE FIREBASE CLOUD
         grosirQty: parseInt(document.getElementById("adm-prod-grosir-qty").value) || 0,
-        grosirHarga: parseInt(document.getElementById("adm-prod-grosir-harga").value) || 0
+        grosirHarga: parseInt(document.getElementById("adm-prod-grosir-harga").value) || 0,
+        // 📦 SELECTIVE INVENTORY
+        stokFisik: document.getElementById("adm-prod-stok").value !== "" ? parseInt(document.getElementById("adm-prod-stok").value) : null
     };
     set(ref(db, 'catalog_products/' + id), data).then(() => {
         showNotification("Data Master Pricelist Berhasil Diperbarui!", "success");
@@ -2350,26 +2578,31 @@ window.simpanProdukDariAdmin = function () {
     });
 };
 
-window.hapusProdukDariAdmin = function (id) { 
+window.hapusProdukDariAdmin = function (id) {
+    if (window.currentUserRole !== 'owner') {
+        Swal.fire('Akses Ditolak', 'Staf tidak berhak menghapus data produk utama.', 'error');
+        return;
+    }
     Swal.fire({
-        title: 'Hapus Produk?', 
-        text: "Data tidak bisa dikembalikan!", 
-        icon: 'warning', 
-        showCancelButton: true, 
-        confirmButtonColor: '#d33', 
+        title: 'Hapus Produk?',
+        text: "Data tidak bisa dikembalikan!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
         confirmButtonText: 'Ya, Hapus!'
-    }).then((result) => { 
-        if (result.isConfirmed) { 
-            remove(ref(db, 'catalog_products/' + id)); 
-            Swal.fire('Terhapus!', 'Produk berhasil dihapus.', 'success'); 
-        } 
-    }); 
+    }).then((result) => {
+        if (result.isConfirmed) {
+            remove(ref(db, 'catalog_products/' + id));
+            Swal.fire('Terhapus!', 'Produk berhasil dihapus.', 'success');
+        }
+    });
 };
 window.resetFormAdmin = function () {
     document.getElementById("adm-prod-id").value = "";
     document.getElementById("adm-prod-nama").value = "";
     document.getElementById("adm-prod-harga").value = "";
     document.getElementById("adm-prod-varian").value = "";
+    if (document.getElementById("adm-prod-stok")) document.getElementById("adm-prod-stok").value = "";
 
     // Ganti .selectedIndex menjadi .value = "" agar tidak eror
     if (document.getElementById("adm-prod-kategori")) document.getElementById("adm-prod-kategori").value = "";
@@ -2387,7 +2620,7 @@ function bukaPopupDetailOrder(notaId) {
         masterOrdersCache[notaId];
 
     if (!order) {
-        Swal.fire({icon: 'error', title: 'Oops...', text: 'Detail order tidak ditemukan'});
+        Swal.fire({ icon: 'error', title: 'Oops...', text: 'Detail order tidak ditemukan' });
         return;
     }
 
@@ -2450,7 +2683,7 @@ function bukaPopupDetailOrder(notaId) {
     `;
 
     html += `
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 mb-2">
         <button
             class="btn btn-primary flex-grow-1 fw-bold"
             onclick="window.cetakUlangStruk('${order.notaId}')"
@@ -2458,35 +2691,127 @@ function bukaPopupDetailOrder(notaId) {
             <i class="fa-solid fa-print me-2"></i>
             Cetak Struk
         </button>
+        <button
+            class="btn btn-outline-primary fw-bold"
+            onclick="window.repeatOrder('${order.notaId}')"
+            title="Pesan ulang pesanan ini"
+        >
+            <i class="fa-solid fa-copy me-1"></i>
+            Repeat Order
+        </button>
+    </div>
     `;
 
     if (order.sisaTagihan > 0) {
         html += `
-        <button
-            class="btn btn-success flex-grow-1 fw-bold shadow-sm"
-            onclick="bukaPelunasan('${order.notaId}')"
-        >
-            <i class="fa-solid fa-money-bill-wave me-2"></i>
-            Pelunasan
-        </button>
-    </div>
+        <div class="mt-4 p-3 rounded-3 border" style="background:#f8f9fa;">
+            <h6 class="fw-bold text-dark mb-3"><i class="fa-solid fa-money-bill-wave me-2 text-success"></i>Form Pelunasan</h6>
+            <div class="input-group mb-3">
+                <span class="input-group-text bg-white fw-bold">Rp</span>
+                <input type="number" id="input-pelunasan-inline" class="form-control form-control-lg fw-bold text-success" placeholder="Nominal Uang..." value="${order.sisaTagihan}">
+            </div>
+            <button
+                class="btn btn-success w-100 fw-bold shadow-sm py-2"
+                onclick="window.prosesPelunasanInline('${order.notaId}')"
+            >
+                Konfirmasi Pelunasan
+            </button>
+        </div>
         `;
-    } else {
-        html += `</div>`;
     }
-    document.getElementById(
-        "modal-content-body"
-    ).innerHTML = html;
 
-    new bootstrap.Modal(
-        document.getElementById(
-            "detailOrderModal"
-        )
-    ).show();
+    document.getElementById("detail-order-content").innerHTML = html;
+    window.tampilkanPanelSPA("panel-detail-order");
 }
+
+window.kembaliKeOrder = function() {
+    switchTab('panel-order', document.getElementById('menu-order'));
+};
+
+window.kembaliKePelanggan = function() {
+    switchTab('panel-pelanggan', document.getElementById('menu-pelanggan'));
+};
+
+window.tampilkanPanelSPA = function(panelId) {
+    document.querySelectorAll('.tab-pane-custom').forEach(tab => {
+        tab.style.display = 'none';
+        tab.classList.remove('active');
+    });
+    const p = document.getElementById(panelId);
+    if(p) {
+        p.style.display = 'block';
+        p.classList.add('active');
+    }
+};
+
+window.prosesPelunasanInline = function(id) {
+    let order = masterOrdersCache[id];
+    let bayar = parseInt(document.getElementById("input-pelunasan-inline").value) || 0;
+    
+    if (bayar < 1) {
+        Swal.fire('Error', 'Nominal pelunasan tidak valid', 'error');
+        return;
+    }
+
+    if (bayar > order.sisaTagihan) {
+        Swal.fire('Error', 'Nominal tidak boleh melebihi sisa tagihan!', 'error');
+        return;
+    }
+
+    let dpBaru = order.dpMasuk + bayar;
+    let sisaBaru = order.totalBelanja - dpBaru;
+    
+    // Status bisa otomatis SELESAI atau tetap (tergantung kebutuhan, kita biarkan saja sesuai order.status saat ini)
+    let statusBaru = order.status;
+
+    update(ref(db, 'orders/' + id), {
+        dpMasuk: dpBaru,
+        sisaTagihan: sisaBaru,
+        status: statusBaru
+    }).then(() => {
+        Swal.fire('Berhasil!', 'Pelunasan berhasil dicatat.', 'success').then(() => {
+            window.kembaliKeOrder();
+            if (typeof window.hitungDataDashboardDanLaporan === 'function') window.hitungDataDashboardDanLaporan();
+        });
+        if (typeof window.logAktivitas === 'function') {
+            window.logAktivitas("PELUNASAN", `Melunasi Rp ${bayar} untuk nota #${id}`);
+        }
+    });
+};
 
 window.bukaPopupDetailOrder =
     bukaPopupDetailOrder;
+
+window.repeatOrder = function(notaId) {
+    let order = masterOrdersCache[notaId];
+    if (!order) return;
+    
+    // Copy item to keranjang
+    keranjang = JSON.parse(JSON.stringify(order.item || []));
+    
+    // Copy customer info
+    document.getElementById("cust-name").value = order.nama || "";
+    document.getElementById("cust-phone").value = order.phone || "";
+    
+    // Close modal
+    const modalEl = document.getElementById('detailOrderModal');
+    if (modalEl) {
+        const modalInst = bootstrap.Modal.getInstance(modalEl);
+        if (modalInst) modalInst.hide();
+    }
+    
+    // Switch to POS tab if not already
+    switchTab('panel-kasir', document.getElementById('menu-kasir'));
+    
+    renderKeranjang();
+    Swal.fire({
+        icon: 'success',
+        title: 'Repeat Order Berhasil',
+        text: 'Item telah dimasukkan ke keranjang kasir.',
+        timer: 2000,
+        showConfirmButton: false
+    });
+};
 
 function simpanDraftOtomatis() {
 
@@ -2580,45 +2905,59 @@ window.clearDraftKasir =
 function bukaPelunasan(notaId) {
     let order = masterOrdersCache[notaId];
     if (!order) {
-        Swal.fire({icon: 'error', title: 'Oops...', text: 'Data nota tidak ditemukan!'});
+        Swal.fire({ icon: 'error', title: 'Oops...', text: 'Data nota tidak ditemukan!' });
         return;
     }
 
     let sisa = order.sisaTagihan || 0;
     Swal.fire({
         title: 'Pelunasan',
-        text: 'Masukkan nominal pelunasan:',
-        input: 'number',
-        inputValue: sisa,
-        inputAttributes: {
-            min: 1,
-            max: sisa
-        },
+        html: `
+            <div class="text-start mb-3">
+                <label class="form-label fw-bold" style="font-size:0.85rem;">Masukkan nominal pelunasan:</label>
+                <input type="number" id="swal-pelunasan-nominal" class="form-control" value="${sisa}" max="${sisa}">
+            </div>
+            <div class="text-start mb-1">
+                <label class="form-label fw-bold" style="font-size:0.85rem;">Metode Bayar Pelunasan:</label>
+                <select id="swal-pelunasan-method" class="form-select">
+                    <option value="Tunai">💵 Tunai</option>
+                    <option value="TF">🏦 Transfer</option>
+                    <option value="QR">📱 QRIS</option>
+                </select>
+            </div>
+        `,
         showCancelButton: true,
         confirmButtonText: 'Proses Pelunasan',
         cancelButtonText: 'Batal',
-        inputValidator: (value) => {
-            if (!value) return 'Anda perlu memasukkan nominal!';
-            if (value <= 0) return 'Nominal tidak valid!';
-            if (value > sisa) return 'Nominal melebihi sisa tagihan!';
+        preConfirm: () => {
+            let val = parseInt(document.getElementById('swal-pelunasan-nominal').value);
+            let method = document.getElementById('swal-pelunasan-method').value;
+            if (!val || val <= 0) { Swal.showValidationMessage('Nominal tidak valid!'); return false; }
+            if (val > sisa) { Swal.showValidationMessage('Nominal melebihi sisa!'); return false; }
+            return { nominal: val, method: method };
         }
     }).then((result) => {
         if (result.isConfirmed) {
-            let nominal = parseInt(result.value);
+            let nominal = result.value.nominal;
+            let method = result.value.method;
             let dpBaru = (order.dpMasuk || 0) + nominal;
             let sisaBaru = (order.totalBelanja || 0) - dpBaru;
 
             update(ref(db, 'orders/' + notaId), {
                 dpMasuk: dpBaru,
-                sisaTagihan: sisaBaru
+                sisaTagihan: sisaBaru,
+                paymentMethod: method
             }).then(() => {
+                if (typeof window.logAktivitas === 'function') {
+                    window.logAktivitas("PELUNASAN", `Order #${notaId}: Bayar Rp ${nominal.toLocaleString('id-ID')} via ${method}`);
+                }
                 masterOrdersCache[notaId].dpMasuk = dpBaru;
                 masterOrdersCache[notaId].sisaTagihan = sisaBaru;
 
                 if (sisaBaru <= 0) {
-                    Swal.fire({icon: 'success', title: 'LUNAS!', text: `MANTAP! Nota #${notaId} lunas total.`, timer: 2000, showConfirmButton: false});
+                    Swal.fire({ icon: 'success', title: 'LUNAS!', text: `MANTAP! Nota #${notaId} lunas total.`, timer: 2000, showConfirmButton: false });
                 } else {
-                    Swal.fire({icon: 'info', title: 'Berhasil', text: `Pelunasan berhasil. Sisa: Rp ${sisaBaru.toLocaleString('id-ID')}`, timer: 2000, showConfirmButton: false});
+                    Swal.fire({ icon: 'info', title: 'Berhasil', text: `Pelunasan berhasil. Sisa: Rp ${sisaBaru.toLocaleString('id-ID')}`, timer: 2000, showConfirmButton: false });
                 }
 
                 const modalEl = document.getElementById('detailOrderModal');
@@ -2633,7 +2972,7 @@ function bukaPelunasan(notaId) {
                 renderTableAntrean();
             }).catch((error) => {
                 console.error("Gagal update:", error);
-                Swal.fire({icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menyimpan ke database.'});
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Terjadi kesalahan saat menyimpan ke database.' });
             });
         }
     });
@@ -2838,11 +3177,11 @@ window.kirimDraftWhatsapp = function () {
             // Menyusun teks WA secara dinamis berdasarkan ada/tidaknya varian asli
             let teksVarian = adaVarianNyata ? `      Varian: ${i.varian}\n` : '';
             itemLines += `${idx + 1}. *${namaTampilan}*\n${teksVarian}      ${i.qty} x Rp ${hargaSatuanItem.toLocaleString('id-ID')}\n`;
-            
+
             if (finishingPotong > 0) {
                 itemLines += `      + Potong: Rp ${finishingPotong.toLocaleString('id-ID')}\n`;
             }
-            
+
             itemLines += `      = ${itemSubtotalStr}\n`;
         }
     });
@@ -2877,6 +3216,11 @@ window.editProduk = function (id) {
     // 🎯 SINKRONISASI NILAI GROSIR KE KOTAK INPUT SAAT EDIT KLIK
     if (document.getElementById("adm-prod-grosir-qty")) document.getElementById("adm-prod-grosir-qty").value = produk.grosirQty || 0;
     if (document.getElementById("adm-prod-grosir-harga")) document.getElementById("adm-prod-grosir-harga").value = produk.grosirHarga || 0;
+    
+    // 📦 STOK FISIK
+    if (document.getElementById("adm-prod-stok")) {
+        document.getElementById("adm-prod-stok").value = produk.stokFisik !== undefined && produk.stokFisik !== null ? produk.stokFisik : "";
+    }
 
     document.getElementById("admin-form-title").innerHTML = '<i class="fa-solid fa-pen me-2"></i>Edit Produk';
 };
@@ -2894,7 +3238,7 @@ window.simpanPinBaru = async function () {
     const pinBaru = document.getElementById("setting-pin-baru").value.trim();
 
     if (pinBaru.length < 4) {
-        Swal.fire({icon: 'warning', title: 'Oops...', text: 'PIN minimal 4 digit'});
+        Swal.fire({ icon: 'warning', title: 'Oops...', text: 'PIN minimal 4 digit' });
         return;
     }
 
@@ -2902,10 +3246,10 @@ window.simpanPinBaru = async function () {
         await set(ref(db, 'settings/pin_owner'), pinBaru);
         // Hapus sisa jejak PIN lama dari localStorage jika ada
         localStorage.removeItem("pin_admin");
-        Swal.fire({icon: 'success', title: 'Berhasil', text: 'PIN berhasil disimpan ke cloud!'});
+        Swal.fire({ icon: 'success', title: 'Berhasil', text: 'PIN berhasil disimpan ke cloud!' });
         document.getElementById("setting-pin-baru").value = "";
     } catch (err) {
-        Swal.fire({icon: 'error', title: 'Gagal', text: 'Gagal menyimpan PIN. Coba lagi.'});
+        Swal.fire({ icon: 'error', title: 'Gagal', text: 'Gagal menyimpan PIN. Coba lagi.' });
         console.error("Gagal simpan PIN:", err);
     }
 };
@@ -2937,7 +3281,7 @@ window.exportLaporanKeExcel = function () {
 
     const reportTableBody = document.getElementById("report-table-body");
     if (!reportTableBody || reportTableBody.rows.length === 0 || reportTableBody.rows[0].cells.length === 1) {
-        Swal.fire({icon: 'warning', title: 'Data Kosong', text: 'Tidak ada data transaksi pada rentang tanggal terpilih untuk diexport!'});
+        Swal.fire({ icon: 'warning', title: 'Data Kosong', text: 'Tidak ada data transaksi pada rentang tanggal terpilih untuk diexport!' });
         return;
     }
 
@@ -3029,6 +3373,45 @@ function renderVisualGrafik7Hari(dataOmset7Hari) {
 }
 
 // ========================================================
+// 📦 SISTEM SELECTIVE INVENTORY: PERINGATAN STOK MENIPIS
+// ========================================================
+window.renderLowStockWarning = function() {
+    const container = document.getElementById("inventory-warning-container");
+    if (!container) return;
+
+    let lowStockItems = [];
+    if (typeof listProduk !== 'undefined') {
+        listProduk.forEach(p => {
+            if (p.stokFisik !== undefined && p.stokFisik !== null && p.stokFisik <= 10) {
+                lowStockItems.push(p);
+            }
+        });
+    }
+
+    if (lowStockItems.length > 0) {
+        let html = `
+        <div class="alert alert-danger d-flex align-items-center mb-0 shadow-sm border-0" role="alert" style="border-left: 4px solid #dc3545 !important;">
+            <i class="fa-solid fa-triangle-exclamation fa-2x me-3"></i>
+            <div>
+                <h6 class="alert-heading fw-bold mb-1">Peringatan: Stok Menipis!</h6>
+                <div class="small">Beberapa bahan baku/produk sudah mencapai batas minimum stok (&#8804; 10):</div>
+                <div class="mt-2 d-flex flex-wrap gap-2">
+        `;
+        
+        lowStockItems.forEach(item => {
+            html += `<span class="badge bg-white text-danger border border-danger p-2"><i class="fa-solid fa-box me-1"></i> ${item.nama}: <strong>${item.stokFisik} tersisa</strong></span>`;
+        });
+        
+        html += `</div></div></div>`;
+        container.innerHTML = html;
+        container.style.display = "block";
+    } else {
+        container.innerHTML = "";
+        container.style.display = "none";
+    }
+};
+
+// ========================================================
 // 6. MODUL PREMIUM: LIVE BAR CHART PRODUK TERLARIS CHART.JS
 // ========================================================
 let instanceChartProduk = null;
@@ -3101,7 +3484,7 @@ window.cetakUlangStruk = function (notaId) {
     }
 
     if (!order) {
-        Swal.fire({icon: 'error', title: 'Oops...', text: 'Data transaksi tidak ditemukan!'});
+        Swal.fire({ icon: 'error', title: 'Oops...', text: 'Data transaksi tidak ditemukan!' });
         return;
     }
 
@@ -3225,7 +3608,7 @@ window.cetakUlangStruk = function (notaId) {
 };
 
 // FUNGSI RESET FILTER LAPORAN
-window.resetFilterLaporan = function() {
+window.resetFilterLaporan = function () {
     if (document.getElementById("report-search-input")) document.getElementById("report-search-input").value = "";
 
     let today = new Date();
@@ -3241,7 +3624,7 @@ window.resetFilterLaporan = function() {
 };
 
 // 🧠 FUNGSI RESET FILTER REALTIME
-window.resetFilterOrderan = function() {
+window.resetFilterOrderan = function () {
     if (document.getElementById("search-order-dynamic")) document.getElementById("search-order-dynamic").value = "";
     if (document.getElementById("filter-status-order")) document.getElementById("filter-status-order").value = "";
     if (document.getElementById("filter-pembayaran-order")) document.getElementById("filter-pembayaran-order").value = "";
@@ -3261,15 +3644,15 @@ window.resetFilterOrderan = function() {
 // ========================================================
 // 6. MODUL ANTIGRAVITY: KEYBOARD HOTKEYS (UX INOVASI)
 // ========================================================
-document.addEventListener('keydown', function(e) {
+document.addEventListener('keydown', function (e) {
     // Abaikan pintasan jika sedang mengetik di input text/textarea, KECUALI untuk tombol F (F2, F4, F7)
     const isInput = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA';
-    
+
     if (e.key === 'F2') {
         e.preventDefault(); // Mencegah fungsi bawaan browser
         const searchInput = document.getElementById('search-product-input');
         if (searchInput) searchInput.focus();
-    } 
+    }
     else if (e.key === 'F4') {
         e.preventDefault();
         if (window.simpanTransaksi) window.simpanTransaksi('PRINT');
@@ -3281,7 +3664,7 @@ document.addEventListener('keydown', function(e) {
     else if (e.key === 'Escape') {
         // Jangan eksekusi jika ada SweetAlert terbuka
         if (typeof Swal !== 'undefined' && Swal.isVisible()) return;
-        
+
         // Kosongkan draft hanya jika tidak fokus di input box atau sedang mengetik
         if (keranjang && keranjang.length > 0) {
             Swal.fire({
@@ -3308,7 +3691,7 @@ window.currentLaporanDir = "desc";
 window.currentDashboardSort = null;
 window.currentDashboardDir = "desc";
 
-window.sortLaporan = function(field) {
+window.sortLaporan = function (field) {
     if (window.currentLaporanSort === field) {
         window.currentLaporanDir = window.currentLaporanDir === "asc" ? "desc" : "asc";
     } else {
@@ -3319,7 +3702,7 @@ window.sortLaporan = function(field) {
     updateSortIcons('report-table-head', field, window.currentLaporanDir);
 };
 
-window.sortDashboard = function(field) {
+window.sortDashboard = function (field) {
     if (window.currentDashboardSort === field) {
         window.currentDashboardDir = window.currentDashboardDir === "asc" ? "desc" : "asc";
     } else {
@@ -3330,10 +3713,10 @@ window.sortDashboard = function(field) {
     updateSortIcons('db-table-head', field, window.currentDashboardDir);
 };
 
-window.updateSortIcons = function(theadId, field, dir) {
+window.updateSortIcons = function (theadId, field, dir) {
     const thead = document.getElementById(theadId);
     if (!thead) return;
-    
+
     // Reset semua icon
     const icons = thead.querySelectorAll('i.fa-sort, i.fa-sort-up, i.fa-sort-down');
     icons.forEach(i => {
@@ -3343,11 +3726,273 @@ window.updateSortIcons = function(theadId, field, dir) {
     // Update icon yang diklik berdasarkan nama fungsi yg dipanggil
     const onclickStr = theadId === 'report-table-head' ? `sortLaporan('${field}')` : `sortDashboard('${field}')`;
     const th = thead.querySelector(`th[onclick="${onclickStr}"]`);
-    
+
     if (th) {
         const icon = th.querySelector('i');
         if (icon) {
             icon.className = dir === 'asc' ? 'fa-solid fa-sort-up text-primary ms-1' : 'fa-solid fa-sort-down text-primary ms-1';
         }
+    }
+};
+
+// ==============================================================================
+// 🔐 SISTEM SESI & MANAJEMEN ROLE
+// ==============================================================================
+window.initUserSession = async function (user) {
+    window.currentUserUid = user.uid;
+    try {
+        const { get, ref: dbRef } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js");
+        const snap = await get(dbRef(db, `users/${user.uid}`));
+        let userData = snap.exists() ? snap.val() : null;
+
+        // AUTO-MIGRASI OWNER: Jika user belum terdaftar di database 'users', ATAU belum punya 'role', ini pasti akun lama (Owner).
+        // Kasir baru akan selalu memiliki data role:'kasir' yang diset saat pembuatan.
+        if (!userData || !userData.role) {
+            userData = userData || {};
+            userData.role = 'owner';
+            userData.nama = userData.nama || user.email || 'Owner';
+            if (!userData.lastPasswordChange) userData.lastPasswordChange = Date.now();
+
+            // Simpan otomatis ke database
+            await update(dbRef(db, `users/${user.uid}`), userData).catch(e => console.error(e));
+        }
+
+        window.currentUserRole = userData.role || 'kasir';
+        window.currentUserNama = userData.nama || user.email;
+
+        // Update UI Header Info
+        const headerUserInfo = document.getElementById('header-user-info');
+        if (headerUserInfo) {
+            let roleBadge = '<span class="badge bg-secondary">Unknown</span>';
+            if (window.currentUserRole === 'owner') roleBadge = '<span class="badge bg-danger">Owner</span>';
+            else if (window.currentUserRole === 'kasir') roleBadge = '<span class="badge bg-primary">Kasir</span>';
+            else if (window.currentUserRole === 'operator') roleBadge = '<span class="badge bg-info text-dark">Operator</span>';
+
+            headerUserInfo.innerHTML = `<i class="fa-solid fa-user-circle"></i> ${window.currentUserNama} ${roleBadge}`;
+        }
+
+        // Update UI Kasir Nama
+        const spanNama = document.getElementById('span-nama-kasir-header');
+        if (spanNama) spanNama.innerText = window.currentUserNama;
+
+        // Jika owner, tampilkan menu manajemen staf
+        if (window.currentUserRole === 'owner') {
+            const secStaf = document.getElementById('section-manajemen-staf');
+            if (secStaf) secStaf.style.display = 'block';
+            window.renderTabelStaf();
+        }
+
+        // Cek Peringatan Ganti Password
+        const sysSnap = await get(dbRef(db, 'settings/system_policy/passwordChangeIntervalDays'));
+        const intervalDays = sysSnap.exists() ? parseInt(sysSnap.val()) : 30; // Default 30 hari
+
+        let lastChange = userData.lastPasswordChange;
+        // Jika akun lama (seperti owner) belum memiliki data lastPasswordChange, kita inisialisasi dengan waktu sekarang agar tidak tiba-tiba disuruh ganti password.
+        if (!lastChange) {
+            lastChange = Date.now();
+            update(dbRef(db, `users/${user.uid}`), { lastPasswordChange: lastChange }).catch(e => console.error("Update lastChange error", e));
+        }
+
+        const daysSinceChange = (Date.now() - lastChange) / (1000 * 60 * 60 * 24);
+
+        if (intervalDays > 0 && daysSinceChange >= intervalDays) {
+            const modalEl = document.getElementById('modalGantiPassword');
+            if (modalEl) {
+                const modalInst = new bootstrap.Modal(modalEl);
+                modalInst.show();
+            }
+        }
+
+        // Cek Sesi Buka Kasir
+        await cekBukaKasir();
+
+    } catch (err) {
+        console.error("Gagal inisialisasi sesi:", err);
+    }
+};
+
+window.tambahStafBaru = async function () {
+    const nama = document.getElementById('add-staff-nama').value.trim();
+    const pass = document.getElementById('add-staff-pass').value;
+    const role = document.getElementById('add-staff-role') ? document.getElementById('add-staff-role').value : 'kasir';
+    const msgEl = document.getElementById('add-staff-msg');
+    const btn = document.getElementById('btn-tambah-staf');
+
+    if (!nama || pass.length < 6) {
+        msgEl.className = 'mt-2 small fw-bold text-center text-danger';
+        msgEl.innerText = 'Nama wajib diisi & Password minimal 6 karakter!';
+        msgEl.classList.remove('d-none');
+        return;
+    }
+
+    if (nama.includes(' ')) {
+        msgEl.className = 'mt-2 small fw-bold text-center text-danger';
+        msgEl.innerText = 'Gunakan satu kata saja (tanpa spasi).';
+        msgEl.classList.remove('d-none');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+    msgEl.classList.add('d-none');
+
+    const res = await registerStaff(nama, pass, role);
+
+    btn.disabled = false;
+    btn.innerHTML = 'Daftarkan Akun';
+
+    if (res.success) {
+        msgEl.className = 'mt-2 small fw-bold text-center text-success';
+        msgEl.innerText = 'Staf berhasil didaftarkan!';
+        msgEl.classList.remove('d-none');
+        document.getElementById('add-staff-nama').value = '';
+        document.getElementById('add-staff-pass').value = '';
+    } else {
+        msgEl.className = 'mt-2 small fw-bold text-center text-danger';
+        msgEl.innerText = 'Gagal: ' + res.error;
+        msgEl.classList.remove('d-none');
+    }
+};
+
+window.renderTabelStaf = function () {
+    const tbody = document.getElementById('table-staf-body');
+    if (!tbody) return;
+
+    onValue(ref(db, 'users'), (snapshot) => {
+        const users = snapshot.val();
+        if (!users) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Belum ada staf</td></tr>';
+            return;
+        }
+
+        let html = '';
+        Object.keys(users).forEach(uid => {
+            const u = users[uid];
+            const dateStr = u.lastPasswordChange ? new Date(u.lastPasswordChange).toLocaleDateString('id-ID') : 'Belum Pernah';
+            let roleBadge = '<span class="badge bg-secondary">Unknown</span>';
+            if (u.role === 'owner') roleBadge = '<span class="badge bg-danger">Owner</span>';
+            else if (u.role === 'kasir') roleBadge = '<span class="badge bg-primary">Kasir</span>';
+            else if (u.role === 'operator') roleBadge = '<span class="badge bg-info text-dark">Operator</span>';
+
+            html += `
+            <tr>
+                <td class="fw-bold">${u.nama || '-'}</td>
+                <td class="text-muted">${u.email || '-'}</td>
+                <td>${roleBadge}</td>
+                <td class="text-muted"><i class="fa-regular fa-clock me-1"></i> ${dateStr}</td>
+            </tr>`;
+        });
+        tbody.innerHTML = html;
+    });
+};
+
+window.prosesGantiPassword = async function () {
+    const passLama = document.getElementById('input-pass-lama').value;
+    const passBaru = document.getElementById('input-pass-baru').value;
+    const errMsg = document.getElementById('pesan-eror-ganti-pass');
+    const btn = document.getElementById('btn-proses-ganti-pass');
+
+    if (!passLama || passBaru.length < 6) {
+        errMsg.innerText = "Password baru minimal 6 karakter.";
+        errMsg.classList.remove('d-none');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Memproses...';
+    errMsg.classList.add('d-none');
+
+    try {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Tidak ada user aktif.");
+
+        // Re-authenticate
+        const credential = EmailAuthProvider.credential(user.email, passLama);
+        await reauthenticateWithCredential(user, credential);
+
+        // Update Password
+        await updatePassword(user, passBaru);
+
+        // Update timestamp di database
+        await update(ref(db, `users/${user.uid}`), {
+            lastPasswordChange: Date.now()
+        });
+
+        // Sukses
+        const modalEl = document.getElementById('modalGantiPassword');
+        const modalInst = bootstrap.Modal.getInstance(modalEl);
+        if (modalInst) modalInst.hide();
+
+        showNotification("Password berhasil diperbarui!", "success");
+
+    } catch (error) {
+        console.error(error);
+        errMsg.innerText = "Gagal! Password lama salah atau koneksi bermasalah.";
+        errMsg.classList.remove('d-none');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Perbarui Sekarang <i class="fa-solid fa-arrow-right ms-1"></i>';
+    }
+};
+
+window.cekBukaKasir = async function () {
+    // Hanya berlaku jika sudah login
+    if (!window.currentUserUid) return;
+
+    // Bypass untuk Owner (Owner tidak perlu Buka Kasir)
+    if (window.currentUserRole === 'owner') return;
+
+    const tglSekarang = new Date().toISOString().split('T')[0];
+
+    try {
+        const snap = await get(ref(db, `daily_sessions/${tglSekarang}`));
+        if (!snap.exists()) {
+            // Otomatis buka sesi kasir dengan modal awal 0 agar tidak mengganggu kasir saat buka aplikasi
+            await set(ref(db, `daily_sessions/${tglSekarang}`), {
+                tanggal: tglSekarang,
+                modalAwal: 0,
+                dibukaOleh: window.currentUserNama || 'Unknown',
+                timestamp: Date.now()
+            });
+            window.sessionModalAwal = 0;
+            const ws = document.getElementById('welcome-screen');
+            if (ws) ws.style.display = 'none';
+        } else {
+            const sessionData = snap.val();
+            // Simpan modal awal di memori agar bisa dipakai saat tutup kasir pre-fill
+            window.sessionModalAwal = sessionData.modalAwal || 0;
+        }
+    } catch (e) {
+        console.error("Gagal cek sesi kasir:", e);
+    }
+};
+
+window.prosesBukaKasir = async function () {
+    let modalAwal = parseInt(document.getElementById("bk-modal-awal").value) || 0;
+    const tglSekarang = new Date().toISOString().split('T')[0];
+
+    try {
+        await set(ref(db, `daily_sessions/${tglSekarang}`), {
+            tanggal: tglSekarang,
+            modalAwal: modalAwal,
+            dibukaOleh: window.currentUserNama || 'Unknown',
+            timestamp: Date.now()
+        });
+
+        window.sessionModalAwal = modalAwal;
+
+        const ws = document.getElementById('welcome-screen');
+        if (ws) ws.style.display = 'none';
+
+        Swal.fire({
+            title: 'Sesi Dimulai',
+            text: 'Selamat bertugas! Laci kasir telah dibuka.',
+            icon: 'success',
+            timer: 1500,
+            showConfirmButton: false
+        });
+
+    } catch (e) {
+        Swal.fire("Gagal", "Tidak dapat membuka sesi kasir. Cek koneksi Anda.", "error");
     }
 };
