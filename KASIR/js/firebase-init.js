@@ -2,7 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { getDatabase } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-const firebaseConfig = {
+export const firebaseConfig = {
     apiKey: "AIzaSyBb65AtDlOIlvPQEIFj2NJkJ27FnlyhRFQ",
     authDomain: "putra-print-kasir.firebaseapp.com",
     databaseURL: "https://putra-print-kasir-default-rtdb.asia-southeast1.firebasedatabase.app",
@@ -13,6 +13,6 @@ const firebaseConfig = {
     measurementId: "G-1R2CXYY805"
 };
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 export const db = getDatabase(app);
 export const auth = getAuth(app);
