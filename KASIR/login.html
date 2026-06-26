@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login — Putra Print</title>
+
+    <!-- Sync Time -->
+    <script src="js/time-sync.js"></script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
@@ -342,16 +346,18 @@
     import { loginUser } from './js/auth.js';
     import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
+    window.isLoggingIn = false;
+
     // Jika sudah login, langsung masuk
     onAuthStateChanged(auth, (user) => {
-        if (user) window.location.replace('index.html');
+        if (user && !window.isLoggingIn) window.location.replace('index.html');
     });
 
     window.handleLogin = async function(e) {
         e.preventDefault();
+        window.isLoggingIn = true;
         const inputIdentitas = document.getElementById('login-email').value.trim();
-        // Jika tidak ada @, anggap ini username dan tambahkan domain palsu internal
-        const email = inputIdentitas.includes('@') ? inputIdentitas : `${inputIdentitas.toLowerCase().replace(/\s+/g, '')}@putraprint.com`;
+        const baseEmail = inputIdentitas.includes('@') ? inputIdentitas : `${inputIdentitas.toLowerCase().replace(/\s+/g, '')}@putraprint.com`;
         const password = document.getElementById('login-password').value;
         const btn      = document.getElementById('btn-login');
         const errBox   = document.getElementById('error-msg');
@@ -361,18 +367,52 @@
         btn.classList.add('loading');
         btn.disabled = true;
 
-        try {
-            await loginUser(email, password);
-        } catch (err) {
+        let success = false;
+        let lastErr = null;
+
+        for (let i = 0; i <= 10; i++) {
+            let emailToTry = baseEmail;
+            if (i > 0 && !inputIdentitas.includes('@')) {
+                emailToTry = `${inputIdentitas.toLowerCase().replace(/\s+/g, '')}.${i}@putraprint.com`;
+            }
+            
+            try {
+                const cred = await loginUser(emailToTry, password);
+
+                // Cek apakah akun ini adalah akun lama yang sudah dihapus
+                const { get, ref: dbRef } = await import("https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js");
+                const { db } = await import('./js/firebase-init.js');
+                const snap = await get(dbRef(db, `users/${cred.user.uid}`));
+                if (snap.exists() && snap.val().role === 'deleted') {
+                    // Akun ini sudah dihapus, logout dan coba variasi berikutnya!
+                    await import('./js/auth.js').then(m => m.logoutUser());
+                    continue; 
+                }
+
+                success = true;
+                break; // Berhasil login ke akun yang aktif
+            } catch (err) {
+                lastErr = err;
+                // Jika salah password atau user tidak ditemukan, mungkin ini adalah akun lama yg terhapus. Lanjut iterasi berikutnya.
+                if (err.code !== 'auth/wrong-password' && err.code !== 'auth/user-not-found' && err.code !== 'auth/invalid-credential') {
+                    break; // Error lain (seperti network), stop looping.
+                }
+            }
+        }
+
+        if (success) {
+            window.location.replace('index.html');
+        } else {
+            window.isLoggingIn = false;
             btn.classList.remove('loading');
             btn.disabled = false;
 
             let msg = 'Terjadi kesalahan. Coba lagi.';
-            if (['auth/user-not-found','auth/wrong-password','auth/invalid-credential'].includes(err.code)) {
+            if (lastErr && ['auth/user-not-found','auth/wrong-password','auth/invalid-credential'].includes(lastErr.code)) {
                 msg = 'Email atau password salah. Coba lagi.';
-            } else if (err.code === 'auth/too-many-requests') {
+            } else if (lastErr && lastErr.code === 'auth/too-many-requests') {
                 msg = 'Terlalu banyak percobaan. Tunggu beberapa menit.';
-            } else if (err.code === 'auth/network-request-failed') {
+            } else if (lastErr && lastErr.code === 'auth/network-request-failed') {
                 msg = 'Tidak ada koneksi internet.';
             }
 

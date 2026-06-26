@@ -7,6 +7,9 @@
     <title>Putra Print</title>
     <meta name="description" content="Sistem Kasir Digital Premium untuk Putra Print — Solusi Cetak Terbaik & Cepat.">
 
+    <!-- Sync Time -->
+    <script src="js/time-sync.js"></script>
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -127,6 +130,10 @@
         <div class="mobile-more-sheet">
             <div class="mobile-more-handle"></div>
             <div class="mobile-more-grid">
+                <a href="pembukuan.html" class="mobile-more-item">
+                    <div class="mobile-more-icon"><i class="fa-solid fa-book-open"></i></div>
+                    <span>Pembukuan</span>
+                </a>
                 <a href="#" class="mobile-more-item" onclick="mobilePinSwitch('panel-produk','menu-produk', document.getElementById('bnav-more')); closeMobileMore(); return false;">
                     <div class="mobile-more-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
                     <span>Produk</span>
@@ -422,13 +429,13 @@
 
                                         <!-- Tombol Metode Pembayaran -->
                                         <div class="d-flex gap-1 mt-1">
-                                            <input type="radio" class="btn-check" name="payment-method-radio" id="pay-tunai" value="Tunai" checked onchange="document.getElementById('payment-method').value = this.value">
+                                            <input type="radio" class="btn-check pay-radio-tunai" name="payment-method-radio" id="pay-tunai" value="Tunai" checked onchange="document.getElementById('payment-method').value = this.value">
                                             <label class="btn btn-outline-primary flex-fill fw-bold py-1 mb-0" style="font-size:0.7rem; height: 28px; line-height: 1.2;" for="pay-tunai">💵 Tunai</label>
 
-                                            <input type="radio" class="btn-check" name="payment-method-radio" id="pay-tf" value="TF" onchange="document.getElementById('payment-method').value = this.value">
+                                            <input type="radio" class="btn-check pay-radio-tf" name="payment-method-radio" id="pay-tf" value="TF" onchange="document.getElementById('payment-method').value = this.value">
                                             <label class="btn btn-outline-primary flex-fill fw-bold py-1 mb-0" style="font-size:0.7rem; height: 28px; line-height: 1.2;" for="pay-tf">🏦 TF</label>
 
-                                            <input type="radio" class="btn-check" name="payment-method-radio" id="pay-qris" value="QR" onchange="document.getElementById('payment-method').value = this.value">
+                                            <input type="radio" class="btn-check pay-radio-qris" name="payment-method-radio" id="pay-qris" value="QR" onchange="document.getElementById('payment-method').value = this.value">
                                             <label class="btn btn-outline-primary flex-fill fw-bold py-1 mb-0" style="font-size:0.7rem; height: 28px; line-height: 1.2;" for="pay-qris">📱 QRIS</label>
                                         </div>
                                         <!-- Hidden select for script.js compatibility -->
@@ -1234,6 +1241,7 @@
                                                     <th>Email Login (System)</th>
                                                     <th>Role</th>
                                                     <th>Terakhir Ubah Password</th>
+                                                    <th class="text-center">Aksi</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="table-staf-body">
@@ -1311,6 +1319,9 @@
             <tr>
                 <td style="padding:3px 0;"><strong>Tanggal:</strong> <span id="p-nota-tanggal">-</span></td>
                 <td style="padding:3px 0; text-align:right;"><strong>No. WA:</strong> <span id="p-customer-phone">-</span></td>
+            </tr>
+            <tr>
+                <td style="padding:3px 0;" colspan="2"><strong>Status:</strong> <span id="p-nota-status" style="color:#555;">-</span></td>
             </tr>
         </table>
 
@@ -1498,8 +1509,8 @@
             }
         });
 
-        window.doLogout = async function() {
-            if (confirm('Yakin ingin keluar dari aplikasi?')) {
+        window.doLogout = async function(skipConfirm = false) {
+            if (skipConfirm || confirm('Yakin ingin keluar dari aplikasi?')) {
                 await logoutUser();
                 window.location.replace('login.html');
             }

@@ -1849,7 +1849,7 @@ function generateNotaId() {
     return `${prefix}-${nextSeq}`;
 }
 
-function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft = false, paymentMethod = 'Tunai', uangDiberikan = null) {
+function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft = false, paymentMethod = 'Tunai', uangDiberikan = null, mode = 'print') {
     if (uangDiberikan === null) uangDiberikan = dp;
     let kembali = uangDiberikan > total ? uangDiberikan - total : 0;
 
@@ -1878,7 +1878,7 @@ function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft =
     // 4. Susun baris item belanjaan cetak
     let barisItemsHTML = '';
     if (Array.isArray(items)) {
-        items.forEach(i => {
+        items.forEach((i, idx) => {
             let finishingPotong = i.finishingPotong || 0;
             let subtotalProduk = i.subtotal - finishingPotong;
             let hargaSatuanItem = i.qty > 0 ? (subtotalProduk / i.qty) : 0;
@@ -1894,23 +1894,11 @@ function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft =
             let adaVarianNyata = i.varian && i.varian.trim() !== "" && i.varian.trim() !== "-";
 
             barisItemsHTML += `
-            <tr style="border-bottom: 1px dashed #ccc;">
-                <td style="padding: 4px 0; text-align: left;">
-                    <div style="font-weight: bold; color: #000;">${namaTampilan}</div>
-                    ${apakahKustom ? `
-                        <div style="font-size: 10px; color: #555;">@ Rp ${hargaSatuanItem.toLocaleString('id-ID')}</div>
-                    ` : `
-                        ${adaVarianNyata ? `<div style="font-size: 10px; color: #555;">Varian: ${i.varian}</div>` : ''}
-                        <div style="font-size: 10px; color: #555;">${i.qty} x Rp ${hargaSatuanItem.toLocaleString('id-ID')}</div>
-                    `}
-                    ${finishingPotong > 0 ? `
-                        <div style="font-size: 10px; color: #000;">+ Potong: Rp ${finishingPotong.toLocaleString('id-ID')}</div>
-                    ` : ''}
-                </td>
-                <td style="padding: 4px 0; text-align: center; vertical-align: top;">${i.qty}</td>
-                <td style="padding: 4px 0; text-align: right; vertical-align: top; font-weight: bold; white-space: nowrap;">
-                    Rp ${i.subtotal.toLocaleString('id-ID')}
-                </td>
+            <tr>
+                <td class="text-left fw-bold" style="padding-top: 5px; padding-bottom: 5px;">${namaTampilan}${finishingPotong > 0 ? '<br><span style="font-weight: normal; color: #555; font-size: 8pt;">+ Potong: Rp ' + finishingPotong.toLocaleString('id-ID') + '</span>' : ''}</td>
+                <td class="text-center" style="padding-top: 5px; padding-bottom: 5px; vertical-align: top; width: 1%; white-space: nowrap; padding-left: 5px; padding-right: 5px;">${i.qty}</td>
+                <td class="text-left fw-bold" style="padding-top: 5px; padding-bottom: 5px; vertical-align: top; width: 1%; white-space: nowrap;">Rp</td>
+                <td class="text-right fw-bold" style="padding-top: 5px; padding-bottom: 5px; vertical-align: top; width: 1%; white-space: nowrap; padding-left: 3px;">${i.subtotal.toLocaleString('id-ID')}</td>
             </tr>`;
         });
     }
@@ -1924,72 +1912,83 @@ function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft =
             @page { size: 58mm auto; margin: 0; }
             body { 
                 font-family: 'Courier New', Courier, monospace; 
-                width: 48mm; 
-                margin: 4mm 2mm; 
-                font-size: 11px; 
+                width: 58mm; 
+                padding: 5px;
+                box-sizing: border-box;
+                margin: 0; 
+                font-size: 8pt; 
                 color: #000;
+                line-height: 1.3;
             }
             .text-center { text-align: center; }
             .text-right { text-align: right; }
+            .text-left { text-align: left; }
             .fw-bold { font-weight: bold; }
-            .line { border-bottom: 1px dashed #000; margin: 6px 0; }
-            h1 { font-size: 13px; font-weight: bold; margin: 0; text-align: center; }
-            table { width: 100%; border-collapse: collapse; margin: 2px 0; }
-            td { vertical-align: top; font-size: 11px; padding: 2px 0; }
+            .line { border-bottom: 1px dashed #000; margin: 4px 0; }
+            h1 { font-size: 12pt; font-weight: bold; margin: 0 0 3px 0; text-align: center; }
+            table { width: 100%; border-collapse: collapse; margin: 0; }
+            td, th { vertical-align: top; padding: 1px 0; word-wrap: break-word; }
+            .header-table td { font-size: 8pt; }
+            .header-table td:nth-child(1) { width: 35%; white-space: nowrap; }
+            .header-table td:nth-child(2) { width: 5%; text-align: center; }
+            .header-table td:nth-child(3) { width: 60%; }
         </style>
     </head>
     <body>
         <div class="text-center">
             <h1>${namaTokoLive.toUpperCase()}</h1>
-            <span style="font-size: 10px;">${alamatTokoLive}</span><br>
-            <span style="font-size: 10px;">WA: ${waTokoLive}</span>
+            <div style="font-size: 8pt; margin-bottom: 4px; color: #555;">${alamatTokoLive}</div>
+            <div style="font-size: 8pt; color: #555;">WA: ${waTokoLive}</div>
         </div>
         <div class="line"></div>
-        <table>
-            <tr><td>ID NOTA :</td><td class="text-right fw-bold">${isDraft ? 'DRAFT' : '#' + notaId}</td></tr>
-            <tr><td>TANGGAL :</td><td class="text-right">${new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</td></tr>
-            <tr><td>KASIR   :</td><td class="text-right">${window.currentUserNama || 'Kasir'}</td></tr>
-            <tr><td>CUST    :</td><td class="text-right">${nama || 'Umum'}</td></tr>
-            <tr><td>TELP    :</td><td class="text-right">${phone || '-'}</td></tr>
+        <table class="header-table">
+            <tr><td>ID NOTA</td><td>:</td><td class="text-right fw-bold">${isDraft ? 'DRAFT' : '#' + notaId}</td></tr>
+            <tr><td>TANGGAL</td><td>:</td><td class="text-right">${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td></tr>
+            <tr><td>KASIR</td><td>:</td><td class="text-right">${window.currentUserNama || 'Kasir'}</td></tr>
+            <tr><td>CUST</td><td>:</td><td class="text-right">${nama || 'Umum'}</td></tr>
+            <tr><td>TELP</td><td>:</td><td class="text-right">${phone || '-'}</td></tr>
         </table>
         <div class="line"></div>
-        <table>
+        <table style="width: 100%;">
             <thead>
                 <tr style="border-bottom: 1px solid #000;">
-                    <th style="text-align: left; font-size: 11px;">Item</th>
-                    <th style="text-align: center; font-size: 11px;">Qty</th>
-                    <th style="text-align: right; font-size: 11px;">Total</th>
+                    <th class="text-left fw-bold" style="padding-bottom: 2px;">Item</th>
+                    <th class="text-center fw-bold" style="padding-bottom: 2px; width: 1%; white-space: nowrap; padding-left: 5px; padding-right: 5px;">Qty</th>
+                    <th class="text-right fw-bold" colspan="2" style="padding-bottom: 2px;">Total</th>
                 </tr>
             </thead>
             <tbody>
                 ${barisItemsHTML}
             </tbody>
+            <tbody>
+                <tr><td colspan="4" style="border-bottom: 1px dashed #000; padding: 0;"></td></tr>
+                <tr>
+                    <td colspan="2" class="fw-bold" style="white-space: nowrap; padding-top: 4px;">TOTAL:</td>
+                    <td class="text-left fw-bold" style="padding-top: 4px; width: 1%; white-space: nowrap;">Rp</td>
+                    <td class="text-right fw-bold" style="padding-top: 4px; width: 1%; white-space: nowrap;">${total.toLocaleString('id-ID')}</td>
+                </tr>
+                <tr>
+                    <td colspan="2" style="color: #888; white-space: nowrap;">BAYAR (${paymentMethod}):</td>
+                    <td class="text-left" style="color: #888; width: 1%; white-space: nowrap;">Rp</td>
+                    <td class="text-right" style="color: #888; width: 1%; white-space: nowrap;">${uangDiberikan.toLocaleString('id-ID')}</td>
+                </tr>
+                ${kembali > 0 ? `
+                <tr>
+                    <td colspan="2" style="color: #888; white-space: nowrap;">KEMBALI:</td>
+                    <td class="text-left fw-bold" style="color: #888; width: 1%; white-space: nowrap;">Rp</td>
+                    <td class="text-right fw-bold" style="color: #888; width: 1%; white-space: nowrap;">${kembali.toLocaleString('id-ID')}</td>
+                </tr>` : ''}
+                <tr>
+                    <td colspan="2" class="fw-bold" style="white-space: nowrap;">SISA:</td>
+                    <td class="text-left fw-bold" style="width: 1%; white-space: nowrap;">Rp</td>
+                    <td class="text-right fw-bold" style="width: 1%; white-space: nowrap;">${sisa.toLocaleString('id-ID')}</td>
+                </tr>
+                <tr><td colspan="4" style="border-bottom: 1px dashed #000; padding: 0; padding-top: 4px;"></td></tr>
+            </tbody>
         </table>
-        <div class="line"></div>
-        <table>
-            <tr>
-                <td class="fw-bold">TOTAL BELANJA:</td>
-                <td class="text-right fw-bold">Rp ${total.toLocaleString('id-ID')}</td>
-            </tr>
-            <tr>
-                <td>TERBAYAR (${paymentMethod}):</td>
-                <td class="text-right">Rp ${uangDiberikan.toLocaleString('id-ID')}</td>
-            </tr>
-            ${kembali > 0 ? `
-            <tr>
-                <td>KEMBALIAN:</td>
-                <td class="text-right fw-bold" style="color:#000;">Rp ${kembali.toLocaleString('id-ID')}</td>
-            </tr>` : ''}
-            <tr class="fw-bold">
-                <td>SISA TAGIHAN:</td>
-                <td class="text-right">Rp ${sisa.toLocaleString('id-ID')}</td>
-            </tr>
-        </table>
-        <div class="line"></div>
-        <div class="text-center" style="font-size: 9px; margin-top: 8px;">
+        <div class="text-center" style="font-size: 10px; margin-top: 10px; color: #333;">
             Terima Kasih Atas Kunjungan Anda<br>
-            Barang yang sudah dibeli<br>
-            tidak dapat ditukar/dikembalikan.
+            Barang yang sudah dibeli tidak<br>dapat ditukar/dikembalikan.
         </div>
     </body>
     </html>`;
@@ -1999,8 +1998,21 @@ function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft =
 
     // Ajarkan iframe untuk otomatis mencetak HANYA SETELAH konten halamannya siap sepenuhnya
     iframe.contentWindow.onload = function () {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
+        if (mode === 'png') {
+            html2canvas(iframe.contentDocument.body, { scale: 2, useCORS: true }).then(canvas => {
+                let link = document.createElement('a');
+                let namaFile = nama ? nama.replace(/\s+/g, '_') : 'Umum';
+                link.download = `Draft_Invoice_${namaFile}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                setTimeout(() => iframe.remove(), 1000);
+            }).catch(err => {
+                console.error("Gagal membuat gambar PNG.", err);
+            });
+        } else {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+        }
     };
 
     iframe.contentWindow.document.write(htmlLengkap);
@@ -2076,7 +2088,7 @@ function bukaWhatsApp(nama, phone, notaId, total, dp, sisa, items) {
         teks += `Terima kasih telah mempercayakan kebutuhan cetak Anda di ${namaTokoLive}.\n`;
     }
 
-    window.open(`https://api.whatsapp.com/send?phone=${waPhone}&text=${encodeURIComponent(teks)}`, "whatsappWindow");
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(teks)}`, "whatsappWindow");
 }
 
 window.simpanDraftPNG = function () {
@@ -2094,36 +2106,71 @@ window.simpanDraftPNG = function () {
     let sisaTagihan = totalBulat - dp;
     let notaId = generateNotaId().split('-')[1];
 
-    // Set status draft true
     let paymentMethod = document.getElementById("payment-method")?.value || "Tunai";
-    siapkanAreaPrint(notaId, nama, phone, keranjang, totalBulat, Math.min(dp, totalBulat), Math.max(0, totalBulat - dp), true, paymentMethod, dp);
-
-    const printArea = document.getElementById("print-invoice-area");
-
-    // Memunculkan secara off-screen untuk difoto html2canvas
-    printArea.style.display = "block";
-    printArea.style.position = "absolute";
-    printArea.style.left = "-9999px";
-    printArea.style.top = "-9999px";
-    printArea.style.width = "80mm"; // Mengatur lebar standar thermal
-    printArea.style.padding = "10px";
-    printArea.style.background = "#fff";
-
+    
     showNotification("Mempersiapkan Gambar PNG...", "info");
-
+    
+    // Gunakan fungsi print dengan mode png (seperti format struk kasir yang rapi)
+    siapkanAreaPrint(notaId, nama, phone, keranjang, totalBulat, Math.min(dp, totalBulat), Math.max(0, totalBulat - dp), true, paymentMethod, dp, 'png');
+    
     setTimeout(() => {
-        html2canvas(printArea, { scale: 2 }).then(canvas => {
-            let link = document.createElement('a');
-            link.download = `Draft_Invoice_${nama.replace(/\s+/g, '_')}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            printArea.style.display = "none";
-            showNotification("Draft PNG Berhasil Diunduh!", "primary");
-        }).catch(err => {
-            printArea.style.display = "none";
-            showNotification("Gagal membuat gambar PNG.", "danger");
+        showNotification("Draft PNG Berhasil Diunduh!", "primary");
+    }, 1500);
+};
+
+window.populateDigitalInvoice = function(notaId, nama, phone, items, total, dp, sisa, isDraft = false) {
+    const alamatTokoLive = document.getElementById("set-alamat-toko")?.value || "Solusi Cetak Terbaik & Cepat";
+    const waTokoLive = document.getElementById("set-wa-toko")?.value || "083112347800";
+
+    if(document.getElementById("p-alamat-display")) document.getElementById("p-alamat-display").innerText = alamatTokoLive;
+    if(document.getElementById("p-wa-display")) document.getElementById("p-wa-display").innerText = waTokoLive;
+
+    if(document.getElementById("p-nota-id")) document.getElementById("p-nota-id").innerText = isDraft ? "Draft Order" : notaId;
+    if(document.getElementById("p-customer-nama")) document.getElementById("p-customer-nama").innerText = nama || "-";
+    
+    let tgl = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    if(document.getElementById("p-nota-tanggal")) document.getElementById("p-nota-tanggal").innerText = tgl;
+    
+    if(document.getElementById("p-nota-status")) {
+        document.getElementById("p-nota-status").innerText = isDraft ? "Rincian Draft (Belum Disimpan)" : "Transaksi Berhasil (Tersimpan)";
+    }
+
+    let formattedPhone = phone && phone !== "-" ? phone.replace(/^0/, '+62') : "-";
+    if(document.getElementById("p-customer-phone")) document.getElementById("p-customer-phone").innerText = formattedPhone;
+
+    let barisItemsHTML = '';
+    if (Array.isArray(items)) {
+        items.forEach(i => {
+            let finishingPotong = i.finishingPotong || 0;
+            let subtotalProduk = i.subtotal - finishingPotong;
+            let hargaSatuanItem = i.qty > 0 ? (subtotalProduk / i.qty) : 0;
+            
+            let namaTampilan = i.nama || "Item Cetak";
+            let apakahKustom = (namaTampilan.toLowerCase().includes("[kustom]"));
+            if (apakahKustom) namaTampilan = namaTampilan.replace(/\[KUSTOM\]/gi, "").trim();
+
+            let adaVarian = i.varian && i.varian.trim() !== "" && i.varian.trim() !== "-";
+
+            barisItemsHTML += `
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:10px 0; text-align:left;">
+                    <div style="font-weight:bold; font-size:14px; color:#000;">${namaTampilan}</div>
+                    ${!apakahKustom && adaVarian ? `<div style="font-size:12px; color:#555; margin-top:2px;">Varian: ${i.varian}</div>` : ''}
+                    <div style="font-size:12px; color:#555; margin-top:2px;">Qty: ${i.qty} x Rp ${hargaSatuanItem.toLocaleString('id-ID')}</div>
+                    ${finishingPotong > 0 ? `<div style="font-size:12px; color:#1976d2; margin-top:2px;">Finishing Potong: Rp ${finishingPotong.toLocaleString('id-ID')}</div>` : ''}
+                </td>
+                <td style="padding:10px 0; text-align:center; vertical-align:top; font-size:14px;">${i.qty}</td>
+                <td style="padding:10px 0; text-align:right; vertical-align:top; font-weight:bold; font-size:14px;">
+                    Rp ${i.subtotal.toLocaleString('id-ID')}
+                </td>
+            </tr>`;
         });
-    }, 300);
+    }
+
+    if(document.getElementById("p-table-items")) document.getElementById("p-table-items").innerHTML = barisItemsHTML;
+    if(document.getElementById("p-grand-total")) document.getElementById("p-grand-total").innerText = `Rp ${total.toLocaleString('id-ID')}`;
+    if(document.getElementById("p-dp")) document.getElementById("p-dp").innerText = `Rp ${dp.toLocaleString('id-ID')}`;
+    if(document.getElementById("p-sisa")) document.getElementById("p-sisa").innerText = `Rp ${sisa.toLocaleString('id-ID')}`;
 };
 
 window.simpanTransaksi = function (tipe) {
@@ -2269,13 +2316,14 @@ function _prosesSimpanTransaksiCloud(tipe) {
 
         // RESET UTUH FORM KASIR SIAP MELAYANI PELANGGAN SELANJUTNYA
         keranjang = [];
-        renderKeranjang();
         document.getElementById("cust-name").value = "";
         document.getElementById("cust-phone").value = "";
         document.getElementById("payment-dp").value = 0;
         document.getElementById("payment-sisa").innerText = "Rp 0";
         document.getElementById("prod-qty").value = 1;
         if (document.getElementById("spesifikasi-box")) document.getElementById("spesifikasi-box").style.display = "none";
+        renderKeranjang();
+        hapusDraftOtomatis();
     })
         .catch(err => {
             showNotification("Gagal Menyimpan Transaksi", "danger");
@@ -2341,8 +2389,9 @@ window.gantiStatusWorkflow = function (id, val) {
                     cancelButtonText: 'Tidak Perlu'
                 }).then((result) => {
                     if (result.isConfirmed) {
+                        let cleanPhone = oldOrder.phone.replace(/^0/, '62').replace(/\D/g, '');
                         let waText = encodeURIComponent(`Halo Kak ${oldOrder.nama}, pesanan cetak kamu di Putra Print (Nota #${oldOrder.notaId}) sudah selesai dan siap diambil ya! Terima kasih.`);
-                        let waLink = `https://api.whatsapp.com/send?phone=${oldOrder.phone}&text=${waText}`;
+                        let waLink = `https://wa.me/${cleanPhone}?text=${waText}`;
                         window.open(waLink, '_blank');
                     }
                 });
@@ -3190,7 +3239,7 @@ window.kirimDraftWhatsapp = function () {
 
     let teks = `*RINCIAN PESANAN*\nCustomer: ${nama}\n──────────────\n${itemLines}──────────────\nTotal: Rp ${total.toLocaleString('id-ID')}\nDP/Tunai: Rp ${dp.toLocaleString('id-ID')}\nSisa Tagihan: Rp ${sisa.toLocaleString('id-ID')}\n──────────────\n${catatanToko}\n`;
 
-    window.open(`https://api.whatsapp.com/send?phone=${waPhone}&text=${encodeURIComponent(teks)}`, "whatsappWindow");
+    window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(teks)}`, "whatsappWindow");
 };
 
 window.editProduk = function (id) {
@@ -3760,6 +3809,19 @@ window.initUserSession = async function (user) {
         window.currentUserRole = userData.role || 'kasir';
         window.currentUserNama = userData.nama || user.email;
 
+        // CEK JIKA AKUN SUDAH DIHAPUS/DINONAKTIFKAN
+        if (window.currentUserRole === 'deleted') {
+            alert('Akses Ditolak: Akun Anda telah dinonaktifkan oleh Owner.');
+            if (window.doLogout) {
+                window.doLogout(true); // pass true to skip confirmation
+            } else {
+                import('./js/auth.js').then(module => {
+                    module.logoutUser().then(() => window.location.replace('login.html'));
+                });
+            }
+            return;
+        }
+
         // Update UI Header Info
         const headerUserInfo = document.getElementById('header-user-info');
         if (headerUserInfo) {
@@ -3868,11 +3930,21 @@ window.renderTabelStaf = function () {
         let html = '';
         Object.keys(users).forEach(uid => {
             const u = users[uid];
+            if (u.role === 'deleted') return; // Sembunyikan staf yang sudah dinonaktifkan
+
             const dateStr = u.lastPasswordChange ? new Date(u.lastPasswordChange).toLocaleDateString('id-ID') : 'Belum Pernah';
             let roleBadge = '<span class="badge bg-secondary">Unknown</span>';
-            if (u.role === 'owner') roleBadge = '<span class="badge bg-danger">Owner</span>';
-            else if (u.role === 'kasir') roleBadge = '<span class="badge bg-primary">Kasir</span>';
-            else if (u.role === 'operator') roleBadge = '<span class="badge bg-info text-dark">Operator</span>';
+            let aksiBtn = '';
+
+            if (u.role === 'owner') {
+                roleBadge = '<span class="badge bg-danger">Owner</span>';
+                aksiBtn = `<span class="text-muted small"><i class="fa-solid fa-shield"></i></span>`;
+            } else {
+                if (u.role === 'kasir') roleBadge = '<span class="badge bg-primary">Kasir</span>';
+                else if (u.role === 'operator') roleBadge = '<span class="badge bg-info text-dark">Operator</span>';
+                
+                aksiBtn = `<button class="btn btn-sm text-danger border-0 p-1" onclick="hapusStaf('${uid}', '${u.nama}')" title="Nonaktifkan Staf"><i class="fa-solid fa-trash-can"></i></button>`;
+            }
 
             html += `
             <tr>
@@ -3880,9 +3952,32 @@ window.renderTabelStaf = function () {
                 <td class="text-muted">${u.email || '-'}</td>
                 <td>${roleBadge}</td>
                 <td class="text-muted"><i class="fa-regular fa-clock me-1"></i> ${dateStr}</td>
+                <td class="text-center">${aksiBtn}</td>
             </tr>`;
         });
-        tbody.innerHTML = html;
+        tbody.innerHTML = html || '<tr><td colspan="5" class="text-center text-muted">Belum ada staf</td></tr>';
+    });
+};
+
+window.hapusStaf = async function(uid, nama) {
+    Swal.fire({
+        title: 'Nonaktifkan Staf?',
+        text: `Anda yakin ingin menonaktifkan akun staf "${nama}"? Staf ini tidak akan bisa login lagi ke dalam sistem.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Ya, Nonaktifkan!'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                await update(ref(db, `users/${uid}`), { role: 'deleted' });
+                Swal.fire('Dinonaktifkan!', `Akun ${nama} telah berhasil dinonaktifkan.`, 'success');
+            } catch (e) {
+                console.error(e);
+                Swal.fire('Gagal', 'Terjadi kesalahan saat menonaktifkan akun', 'error');
+            }
+        }
     });
 };
 

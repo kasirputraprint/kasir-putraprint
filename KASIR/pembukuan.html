@@ -7,6 +7,9 @@
     <title>Putra Print</title>
     <meta name="description" content="Sistem Kasir Digital Premium untuk Putra Print — Solusi Cetak Terbaik & Cepat.">
 
+    <!-- Sync Time -->
+    <script src="js/time-sync.js"></script>
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -99,23 +102,23 @@
          BOTTOM NAVIGATION — Mobile Only (hidden on desktop)
          ═══════════════════════════════════════════════════════════ -->
     <nav class="bottom-nav no-print" id="bottom-nav">
-        <a href="#" class="bnav-item active" id="bnav-kasir" onclick="mobileNavSwitch('panel-kasir', 'menu-kasir', this); return false;">
+        <a href="index.html" class="bnav-item" id="bnav-kasir">
             <i class="fa-solid fa-cash-register"></i>
             <span>Kasir</span>
         </a>
-        <a href="#" class="bnav-item" id="bnav-order" onclick="mobileNavSwitch('panel-order', 'menu-order', this); return false;">
+        <a href="index.html" class="bnav-item" id="bnav-order">
             <i class="fa-solid fa-folder-open"></i>
             <span>Order</span>
         </a>
-        <a href="#" class="bnav-item" id="bnav-pelanggan" onclick="mobileNavSwitch('panel-pelanggan', 'menu-pelanggan', this); return false;">
+        <a href="index.html" class="bnav-item" id="bnav-pelanggan">
             <i class="fa-solid fa-users"></i>
             <span>Pelanggan</span>
         </a>
-        <a href="#" class="bnav-item" id="bnav-dashboard" onclick="mobilePinSwitch('panel-dashboard', 'menu-dashboard', this); return false;">
+        <a href="index.html" class="bnav-item" id="bnav-dashboard">
             <i class="fa-solid fa-chart-pie"></i>
             <span>Dashboard</span>
         </a>
-        <a href="#" class="bnav-item" id="bnav-more" onclick="toggleMobileMore(this); return false;">
+        <a href="#" class="bnav-item active" id="bnav-more" onclick="toggleMobileMore(this); return false;">
             <i class="fa-solid fa-ellipsis"></i>
             <span>Lainnya</span>
         </a>
@@ -127,15 +130,19 @@
         <div class="mobile-more-sheet">
             <div class="mobile-more-handle"></div>
             <div class="mobile-more-grid">
-                <a href="#" class="mobile-more-item" onclick="mobilePinSwitch('panel-produk','menu-produk', document.getElementById('bnav-more')); closeMobileMore(); return false;">
+                <a href="#" class="mobile-more-item" onclick="closeMobileMore(); return false;">
+                    <div class="mobile-more-icon"><i class="fa-solid fa-book-open"></i></div>
+                    <span style="color:var(--primary);">Pembukuan</span>
+                </a>
+                <a href="index.html" class="mobile-more-item">
                     <div class="mobile-more-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
                     <span>Produk</span>
                 </a>
-                <a href="#" class="mobile-more-item" onclick="mobilePinSwitch('panel-laporan','menu-laporan', document.getElementById('bnav-more')); closeMobileMore(); return false;">
+                <a href="index.html" class="mobile-more-item">
                     <div class="mobile-more-icon"><i class="fa-solid fa-chart-line"></i></div>
                     <span>Laporan</span>
                 </a>
-                <a href="#" class="mobile-more-item" onclick="mobilePinSwitch('panel-pengaturan','menu-pengaturan', document.getElementById('bnav-more')); closeMobileMore(); return false;">
+                <a href="index.html" class="mobile-more-item">
                     <div class="mobile-more-icon"><i class="fa-solid fa-gears"></i></div>
                     <span>Pengaturan</span>
                 </a>
@@ -1113,6 +1120,21 @@
                         </div>
                     </div>
                     
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 text-center bg-light">
+                                <small class="fw-bold text-muted d-block mb-1">Pemasukan Transfer (TF)</small>
+                                <h5 class="fw-bold m-0 text-primary" id="shift-pemasukan-tf">Rp 0</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 text-center bg-light">
+                                <small class="fw-bold text-muted d-block mb-1">Pemasukan QRIS</small>
+                                <h5 class="fw-bold m-0" style="color: var(--violet);" id="shift-pemasukan-qr">Rp 0</h5>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="d-flex gap-2">
                         <button class="btn btn-warning fw-bold flex-grow-1" onclick="bukaModalPengeluaran()"><i class="fa-solid fa-money-bill-transfer me-1"></i> Catat Pengeluaran</button>
                         <button class="btn btn-danger fw-bold flex-grow-1" onclick="bukaModalTutupKasir()"><i class="fa-solid fa-cash-register me-1"></i> Tutup Kasir (End Shift)</button>
@@ -1430,6 +1452,7 @@
                                                     <th>Email Login (System)</th>
                                                     <th>Role</th>
                                                     <th>Terakhir Ubah Password</th>
+                                                    <th class="text-center">Aksi</th>
                                                 </tr>
                                             </thead>
                                             <tbody id="table-staf-body">
@@ -1668,8 +1691,8 @@
             }
         });
 
-        window.doLogout = async function() {
-            if (confirm('Yakin ingin keluar dari aplikasi?')) {
+        window.doLogout = async function(skipConfirm = false) {
+            if (skipConfirm || confirm('Yakin ingin keluar dari aplikasi?')) {
                 await logoutUser();
                 window.location.replace('login.html');
             }

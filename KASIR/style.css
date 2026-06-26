@@ -1675,3 +1675,22 @@ hr { border-color: var(--border-subtle) !important; opacity: 1; }
     .mobile-kasir-tabs { display: none !important; }
     .mobile-more-menu  { display: none !important; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   CUSTOM PAYMENT METHODS COLORING
+   ══════════════════════════════════════════════════════════════ */
+.pay-radio-tunai:checked + label.btn {
+    background-color: var(--emerald) !important;
+    color: #fff !important;
+    border-color: var(--emerald) !important;
+}
+.pay-radio-tf:checked + label.btn {
+    background-color: var(--blue) !important;
+    color: #fff !important;
+    border-color: var(--blue) !important;
+}
+.pay-radio-qris:checked + label.btn {
+    background-color: var(--violet) !important;
+    color: #fff !important;
+    border-color: var(--violet) !important;
+}
