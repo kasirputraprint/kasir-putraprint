@@ -22,11 +22,31 @@ export async function registerStaff(username, password, role = 'kasir') {
         const secondaryAuth = getAuth(secondaryApp);
         
         // Buat email palsu internal
-        const fakeEmail = `${username.toLowerCase()}@putraprint.com`;
+        let fakeEmail = `${username.toLowerCase().replace(/\s+/g, '')}@putraprint.com`;
+        let user;
+        let suffix = 0;
+        let successCreate = false;
 
-        // Buat user
-        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, fakeEmail, password);
-        const user = userCredential.user;
+        while (suffix <= 10) {
+            try {
+                let emailToTry = suffix === 0 ? fakeEmail : `${username.toLowerCase().replace(/\s+/g, '')}.${suffix}@putraprint.com`;
+                const userCredential = await createUserWithEmailAndPassword(secondaryAuth, emailToTry, password);
+                user = userCredential.user;
+                fakeEmail = emailToTry;
+                successCreate = true;
+                break;
+            } catch (error) {
+                if (error.code === 'auth/email-already-in-use') {
+                    suffix++;
+                } else {
+                    throw error;
+                }
+            }
+        }
+
+        if (!successCreate) {
+            throw new Error("Gagal mendaftar setelah beberapa percobaan variasi username.");
+        }
 
         // Set info di profil auth
         await updateProfile(user, { displayName: username });

@@ -271,24 +271,21 @@ window.prosesTutupKasirAkhir = async function() {
         
         // 2. Siapkan Teks WA untuk Owner
         let selisihText = selisih < 0 ? '(MINUS)' : selisih > 0 ? '(LEBIH)' : '(PAS)';
-        let teksWA = `*TUTUP KASIR* (${new Date().toLocaleDateString('id-ID')})\n` +
-                     `👤 Kasir: ${kasirNama}\n\n` +
+        let teksWA = `(${new Date().toLocaleDateString('id-ID')})\n` +
+                     `Kasir: ${kasirNama}\n\n` +
                      `Modal Awal: Rp ${modalAwal.toLocaleString('id-ID')}\n` +
                      `Masuk (Tunai): Rp ${window.tutupKasirData.masukTunai.toLocaleString('id-ID')}\n` +
                      `Masuk (TF/QR): Rp ${window.tutupKasirData.masukNonCash.toLocaleString('id-ID')}\n` +
                      `Pengeluaran: -Rp ${window.tutupKasirData.keluarKas.toLocaleString('id-ID')}\n` +
                      `------------------------\n` +
-                     `*Uang Seharusnya:* Rp ${seharusnya.toLocaleString('id-ID')}\n` +
-                     `*Uang Fisik Laci:* Rp ${fisik.toLocaleString('id-ID')}\n` +
-                     `*Selisih:* Rp ${selisih.toLocaleString('id-ID')} ${selisihText}\n\n` +
-                     `_Putra Print_`;
+                     `*Total:* Rp ${seharusnya.toLocaleString('id-ID')}`;
 
         // 3. Ambil nomor WA Owner dari pengaturan toko (asumsi owner menggunakan nomor yg terdaftar di toko)
         const waTokoLive = document.getElementById("set-wa-toko")?.value || "083112347800";
         let noWA = waTokoLive.replace(/^0/, '62').replace(/\D/g, '');
         
         // Buka Tab WA
-        window.open(`https://api.whatsapp.com/send?phone=${noWA}&text=${encodeURIComponent(teksWA)}`, '_blank');
+        window.open(`https://wa.me/${noWA}?text=${encodeURIComponent(teksWA)}`, '_blank');
         
         // 4. CETAK LAPORAN KE PRINTER THERMAL
         window.cetakLaporanShift(reportData);
@@ -371,15 +368,8 @@ window.cetakLaporanShift = function(reportData) {
         <div class="line"></div>
         
         <table>
-            <tr class="fw-bold"><td>SHRNYA</td><td class="text-right">Rp ${seharusnya.toLocaleString('id-ID')}</td></tr>
-            <tr class="fw-bold"><td>FISIK</td><td class="text-right">Rp ${reportData.uangFisik.toLocaleString('id-ID')}</td></tr>
+            <tr class="fw-bold"><td>Total</td><td class="text-right">Rp ${seharusnya.toLocaleString('id-ID')}</td></tr>
         </table>
-        
-        <div class="line"></div>
-        
-        <div class="text-center fw-bold" style="font-size: 12px; margin: 8px 0;">
-            SELISIH: Rp ${reportData.selisih.toLocaleString('id-ID')}<br>${selisihText}
-        </div>
         
         <div class="text-center" style="font-size: 9px; margin-top: 15px;">
             Sistem Kasir Putra Print
@@ -568,7 +558,7 @@ window.renderDataKeuangan = async function() {
                     noHp = '62' + noHp.substring(3);
                 }
                 
-                let waLink = `https://api.whatsapp.com/send?phone=${noHp}&text=${waText}`;
+                let waLink = `https://wa.me/${noHp}?text=${waText}`;
                 
                 html += `
                 <tr>
@@ -629,8 +619,10 @@ window.refreshSesiKasirUI = async function() {
             }
         }
 
-        // Hitung Omset Tunai (Masuk)
+        // Hitung Omset Tunai & Non-Tunai (Masuk)
         let masukTunai = 0;
+        let masukTF = 0;
+        let masukQR = 0;
         const dateObj = new Date();
         const daftarBulan = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
         let tglOrderFormat = `${dateObj.getDate()} ${daftarBulan[dateObj.getMonth()]} ${dateObj.getFullYear()}`;
@@ -640,6 +632,8 @@ window.refreshSesiKasirUI = async function() {
                 let dp = order.dpMasuk || 0;
                 let method = order.paymentMethod || 'Tunai';
                 if (method === 'Tunai') masukTunai += dp;
+                else if (method === 'TF') masukTF += dp;
+                else if (method === 'QR') masukQR += dp;
             }
         });
 
@@ -656,6 +650,8 @@ window.refreshSesiKasirUI = async function() {
 
         if (document.getElementById('shift-modal-awal')) document.getElementById('shift-modal-awal').innerText = `Rp ${modalAwal.toLocaleString('id-ID')}`;
         if (document.getElementById('shift-pemasukan')) document.getElementById('shift-pemasukan').innerText = `Rp ${masukTunai.toLocaleString('id-ID')}`;
+        if (document.getElementById('shift-pemasukan-tf')) document.getElementById('shift-pemasukan-tf').innerText = `Rp ${masukTF.toLocaleString('id-ID')}`;
+        if (document.getElementById('shift-pemasukan-qr')) document.getElementById('shift-pemasukan-qr').innerText = `Rp ${masukQR.toLocaleString('id-ID')}`;
         if (document.getElementById('shift-pengeluaran')) document.getElementById('shift-pengeluaran').innerText = `Rp ${keluarKas.toLocaleString('id-ID')}`;
         if (document.getElementById('shift-saldo-laci')) document.getElementById('shift-saldo-laci').innerText = `Rp ${saldoLaci.toLocaleString('id-ID')}`;
         
