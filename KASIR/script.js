@@ -1577,26 +1577,36 @@ window.bukaHistoryCustomer = function (nama) {
 
 }
 
-window.hitungSisaTagihan = function () {
-    let subtotal = keranjang.reduce((sum, i) => sum + i.subtotal, 0);
-
-    let mockTotal = document.getElementById("cart-total-mock");
-    if (mockTotal) mockTotal.innerText = `Rp ${lakukanPembulatanKasir(subtotal).toLocaleString('id-ID')}`;
-
+window.kalkulasiTagihan = function(keranjangArr) {
+    let subtotal = keranjangArr.reduce((sum, i) => sum + i.subtotal, 0);
     let diskonPersen = parseInt(document.getElementById("payment-diskon")?.value) || 0;
     if (diskonPersen < 0) diskonPersen = 0;
     if (diskonPersen > 100) diskonPersen = 100;
-
     let diskonNominal = (subtotal * diskonPersen) / 100;
-    let nominalDiskonElem = document.getElementById("cart-diskon-nominal");
-    if (nominalDiskonElem) nominalDiskonElem.innerText = `- Rp ${lakukanPembulatanKasir(diskonNominal).toLocaleString('id-ID')}`;
+    let exactTotal = Math.max(0, subtotal - diskonNominal);
+    let totalBulat = lakukanPembulatanKasir(exactTotal);
+    let pembulatan = totalBulat - exactTotal;
+    
+    return { subtotal, diskonPersen, diskonNominal, exactTotal, totalBulat, pembulatan };
+};
 
-    let totalAkhir = Math.max(0, lakukanPembulatanKasir(subtotal) - lakukanPembulatanKasir(diskonNominal));
+window.hitungTotalDenganDiskon = function(keranjangArr) {
+    return window.kalkulasiTagihan(keranjangArr).totalBulat;
+};
+
+window.hitungSisaTagihan = function () {
+    let tagihan = window.kalkulasiTagihan(keranjang);
+
+    let mockTotal = document.getElementById("cart-total-mock");
+    if (mockTotal) mockTotal.innerText = `Rp ${tagihan.subtotal.toLocaleString('id-ID')}`;
+
+    let nominalDiskonElem = document.getElementById("cart-diskon-nominal");
+    if (nominalDiskonElem) nominalDiskonElem.innerText = `- Rp ${tagihan.diskonNominal.toLocaleString('id-ID')}`;
 
     let dp = parseInt(document.getElementById("payment-dp").value) || 0;
 
-    document.getElementById("cart-total").innerText = `Rp ${totalAkhir.toLocaleString('id-ID')}`;
-    let selisih = totalAkhir - dp;
+    document.getElementById("cart-total").innerText = `Rp ${tagihan.totalBulat.toLocaleString('id-ID')}`;
+    let selisih = tagihan.totalBulat - dp;
     let labelSisa = document.getElementById("label-payment-sisa");
 
     if (selisih < 0) {
@@ -1849,7 +1859,7 @@ function generateNotaId() {
     return `${prefix}-${nextSeq}`;
 }
 
-function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft = false, paymentMethod = 'Tunai', uangDiberikan = null, mode = 'print') {
+function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft = false, paymentMethod = 'Tunai', uangDiberikan = null, mode = 'print', diskonNominal = 0, pembulatan = 0) {
     if (uangDiberikan === null) uangDiberikan = dp;
     let kembali = uangDiberikan > total ? uangDiberikan - total : 0;
 
@@ -1904,6 +1914,12 @@ function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft =
     }
 
     // 5. Gabungkan struktur nota lengkap kasir utama
+    let subtotalAsli = Array.isArray(items) ? items.reduce((sum, i) => sum + i.subtotal, 0) : 0;
+    if (diskonNominal === 0 && subtotalAsli > total) {
+        // Fallback backward compatibility 
+        diskonNominal = Math.max(0, subtotalAsli - total);
+    }
+    
     let htmlLengkap = `
     <html>
     <head>
@@ -1962,6 +1978,23 @@ function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft =
             </tbody>
             <tbody>
                 <tr><td colspan="4" style="border-bottom: 1px dashed #000; padding: 0;"></td></tr>
+                ${diskonNominal > 0 ? `
+                <tr>
+                    <td colspan="2" class="fw-bold" style="white-space: nowrap; padding-top: 4px;">SUBTOTAL:</td>
+                    <td class="text-left fw-bold" style="padding-top: 4px; width: 1%; white-space: nowrap;">Rp</td>
+                    <td class="text-right fw-bold" style="padding-top: 4px; width: 1%; white-space: nowrap;">${subtotalAsli.toLocaleString('id-ID')}</td>
+                </tr>
+                <tr>
+                    <td colspan="2" class="fw-bold" style="white-space: nowrap; padding-top: 4px; color: #d32f2f;">DISKON:</td>
+                    <td class="text-left fw-bold" style="padding-top: 4px; width: 1%; white-space: nowrap; color: #d32f2f;">-Rp</td>
+                    <td class="text-right fw-bold" style="padding-top: 4px; width: 1%; white-space: nowrap; color: #d32f2f;">${diskonNominal.toLocaleString('id-ID')}</td>
+                </tr>` : ''}
+                ${pembulatan !== 0 ? `
+                <tr>
+                    <td colspan="2" class="fw-bold" style="white-space: nowrap; padding-top: 4px;">PEMBULATAN:</td>
+                    <td class="text-left fw-bold" style="padding-top: 4px; width: 1%; white-space: nowrap;">${pembulatan > 0 ? '+' : ''}Rp</td>
+                    <td class="text-right fw-bold" style="padding-top: 4px; width: 1%; white-space: nowrap;">${Math.abs(pembulatan).toLocaleString('id-ID')}</td>
+                </tr>` : ''}
                 <tr>
                     <td colspan="2" class="fw-bold" style="white-space: nowrap; padding-top: 4px;">TOTAL:</td>
                     <td class="text-left fw-bold" style="padding-top: 4px; width: 1%; white-space: nowrap;">Rp</td>
@@ -2019,7 +2052,7 @@ function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft =
     iframe.contentWindow.document.close();
 }
 
-function bukaWhatsApp(nama, phone, notaId, total, dp, sisa, items) {
+function bukaWhatsApp(nama, phone, notaId, total, dp, sisa, items, diskonNominal = 0, pembulatan = 0) {
     if (!phone || phone === "-") {
         showNotification("WhatsApp pelanggan kosong!", "danger");
         return;
@@ -2069,8 +2102,20 @@ function bukaWhatsApp(nama, phone, notaId, total, dp, sisa, items) {
     teks += `*Customer :* ${nama}\n`;
     teks += `───────────────────────────\n\n`;
     teks += `*📦 RINCIAN CETAKAN:*\n${itemLines}`;
+    let subtotalAsli = items.reduce((sum, i) => sum + i.subtotal, 0);
+    if (diskonNominal === 0 && subtotalAsli > total) {
+        diskonNominal = Math.max(0, subtotalAsli - total);
+    }
+    
     teks += `───────────────────────────\n`;
     teks += `*💰 RINCIAN PEMBAYARAN:*\n`;
+    if (diskonNominal > 0) {
+        teks += `*Subtotal      :* Rp ${subtotalAsli.toLocaleString('id-ID')}\n`;
+        teks += `*Diskon        :* -Rp ${diskonNominal.toLocaleString('id-ID')}\n`;
+    }
+    if (pembulatan !== 0) {
+        teks += `*Pembulatan    :* ${pembulatan > 0 ? '+' : ''}Rp ${Math.abs(pembulatan).toLocaleString('id-ID')}\n`;
+    }
     teks += `*Total Tagihan :* Rp ${total.toLocaleString('id-ID')}\n`;
     teks += `*DP / Tunai    :* Rp ${dp.toLocaleString('id-ID')}\n`;
 
@@ -2102,7 +2147,8 @@ window.simpanDraftPNG = function () {
         return;
     }
 
-    let totalBulat = lakukanPembulatanKasir(keranjang.reduce((sum, i) => sum + i.subtotal, 0));
+    let tagihan = window.kalkulasiTagihan(keranjang);
+    let totalBulat = tagihan.totalBulat;
     let sisaTagihan = totalBulat - dp;
     let notaId = generateNotaId().split('-')[1];
 
@@ -2111,7 +2157,7 @@ window.simpanDraftPNG = function () {
     showNotification("Mempersiapkan Gambar PNG...", "info");
     
     // Gunakan fungsi print dengan mode png (seperti format struk kasir yang rapi)
-    siapkanAreaPrint(notaId, nama, phone, keranjang, totalBulat, Math.min(dp, totalBulat), Math.max(0, totalBulat - dp), true, paymentMethod, dp, 'png');
+    siapkanAreaPrint(notaId, nama, phone, keranjang, totalBulat, Math.min(dp, totalBulat), Math.max(0, totalBulat - dp), true, paymentMethod, dp, 'png', tagihan.diskonNominal, tagihan.pembulatan);
     
     setTimeout(() => {
         showNotification("Draft PNG Berhasil Diunduh!", "primary");
@@ -2189,8 +2235,8 @@ window.simpanTransaksi = function (tipe) {
     }
 
     let dp = parseInt(document.getElementById("payment-dp").value) || 0;
-    let total = keranjang.reduce((sum, i) => sum + i.subtotal, 0);
-    let totalBulat = lakukanPembulatanKasir(total);
+    let tagihan = window.kalkulasiTagihan(keranjang);
+    let totalBulat = tagihan.totalBulat;
 
     // CEK APAKAH UANG KURANG DARI TOTAL (POTENSI PIUTANG)
     if (dp < totalBulat) {
@@ -2250,8 +2296,11 @@ function _prosesSimpanTransaksiCloud(tipe) {
     let dp = parseInt(document.getElementById("payment-dp").value) || 0;
     let paymentMethod = document.getElementById("payment-method")?.value || "Tunai";
 
-    let total = keranjang.reduce((sum, i) => sum + i.subtotal, 0);
-    let totalBulat = lakukanPembulatanKasir(total);
+    let tagihan = window.kalkulasiTagihan(keranjang);
+    let totalBulat = tagihan.totalBulat;
+    let subtotalAsli = tagihan.subtotal;
+    let diskonNominal = tagihan.diskonNominal;
+    let pembulatan = tagihan.pembulatan;
 
     let uangDiberikan = dp;
     if (dp > totalBulat) {
@@ -2271,6 +2320,7 @@ function _prosesSimpanTransaksiCloud(tipe) {
 
     const orderObj = {
         notaId: notaId, tanggal: tgl, nama: nama, phone: phone,
+        subtotalBelanja: subtotalAsli, diskonNominal: diskonNominal, pembulatan: pembulatan,
         totalBelanja: totalBulat, dpMasuk: dp, sisaTagihan: sisaTagihan,
         status: "PENDING", item: itemsSnapshot,
         kasir: window.currentUserNama || 'Kasir',
@@ -2301,12 +2351,12 @@ function _prosesSimpanTransaksiCloud(tipe) {
         // PENYARING KONDISI (APAKAH HANYA WA, PRINT, ATAU SAVE SAJA)
         // ========================================================
         if (tipe === 'WA') {
-            bukaWhatsApp(nama, phone, notaId, totalBulat, dp, sisaTagihan, itemsSnapshot);
+            bukaWhatsApp(nama, phone, notaId, totalBulat, dp, sisaTagihan, itemsSnapshot, diskonNominal, pembulatan);
         }
 
         if (tipe === 'PRINT') {
             // 😎 CUKUP PANGGIL INI SAJA, PERINTAH WINDOW.PRINT() DI BAWAHNYA DIHAPUS!
-            siapkanAreaPrint(notaId, nama, phone, itemsSnapshot, totalBulat, dp, sisaTagihan, false, paymentMethod, uangDiberikan);
+            siapkanAreaPrint(notaId, nama, phone, itemsSnapshot, totalBulat, dp, sisaTagihan, false, paymentMethod, uangDiberikan, 'print', diskonNominal, pembulatan);
         }
 
         // KEMBALIKAN KONDISI TOMBOL ASLI SETELAH BERHASIL
@@ -2712,11 +2762,33 @@ function bukaPopupDetailOrder(notaId) {
         `;
     });
 
+    let subtotalAsli = order.subtotalBelanja !== undefined ? order.subtotalBelanja : (order.item || []).reduce((sum, i) => sum + i.subtotal, 0);
+    let diskonNominal = order.diskonNominal !== undefined ? order.diskonNominal : 0;
+    let pembulatan = order.pembulatan !== undefined ? order.pembulatan : 0;
+
+    if (order.diskonNominal === undefined && subtotalAsli > order.totalBelanja) {
+        diskonNominal = Math.max(0, subtotalAsli - order.totalBelanja);
+    }
+
     html += `
         </div>
         
         <div class="receipt-summary bg-light p-3 rounded-3 mb-4">
             <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted">Subtotal</span>
+                <span class="fw-bold text-dark fs-6">Rp ${subtotalAsli.toLocaleString('id-ID')}</span>
+            </div>
+            ${diskonNominal > 0 ? `
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted text-danger">Diskon</span>
+                <span class="fw-bold text-danger fs-6">- Rp ${diskonNominal.toLocaleString('id-ID')}</span>
+            </div>` : ''}
+            ${pembulatan !== 0 ? `
+            <div class="d-flex justify-content-between mb-2">
+                <span class="text-muted text-warning">Pembulatan</span>
+                <span class="fw-bold text-warning fs-6">${pembulatan > 0 ? '+' : ''}Rp ${Math.abs(pembulatan).toLocaleString('id-ID')}</span>
+            </div>` : ''}
+            <div class="d-flex justify-content-between mb-2 border-top pt-2">
                 <span class="text-muted">Total Transaksi</span>
                 <span class="fw-bold text-dark fs-6">Rp ${order.totalBelanja.toLocaleString('id-ID')}</span>
             </div>
@@ -2841,6 +2913,14 @@ window.repeatOrder = function(notaId) {
     // Copy customer info
     document.getElementById("cust-name").value = order.nama || "";
     document.getElementById("cust-phone").value = order.phone || "";
+
+    // Hitung diskon yang sebelumnya dipakai
+    let subtotalAsli = order.subtotalBelanja !== undefined ? order.subtotalBelanja : keranjang.reduce((sum, i) => sum + i.subtotal, 0);
+    let diskonNominal = order.diskonNominal !== undefined ? order.diskonNominal : Math.max(0, subtotalAsli - order.totalBelanja);
+    let diskonPersen = subtotalAsli > 0 ? Math.round((diskonNominal / subtotalAsli) * 100) : 0;
+    
+    let diskonInput = document.getElementById("payment-diskon");
+    if(diskonInput) diskonInput.value = diskonPersen;
     
     // Close modal
     const modalEl = document.getElementById('detailOrderModal');
@@ -3195,8 +3275,10 @@ window.kirimDraftWhatsapp = function () {
         return;
     }
 
-    let total = keranjang.reduce((sum, i) => sum + i.subtotal, 0);
-    total = lakukanPembulatanKasir(total);
+    let tagihan = window.kalkulasiTagihan(keranjang);
+    let total = tagihan.totalBulat;
+    let diskonNominalTagihan = tagihan.diskonNominal;
+    let pembulatan = tagihan.pembulatan;
 
     let dp = parseInt(document.getElementById("payment-dp").value) || 0;
     let sisa = total - dp;
@@ -3235,9 +3317,12 @@ window.kirimDraftWhatsapp = function () {
         }
     });
 
-    let catatanToko = document.getElementById("set-catatan-wa")?.value || "";
+    let subtotalAsli = keranjang.reduce((sum, i) => sum + i.subtotal, 0);
+    let diskonNominal = diskonNominalTagihan;
+    let diskonText = diskonNominal > 0 ? `Subtotal: Rp ${subtotalAsli.toLocaleString('id-ID')}\nDiskon: -Rp ${diskonNominal.toLocaleString('id-ID')}\n──────────────\n` : '';
+    let pembulatanText = pembulatan !== 0 ? `Pembulatan: ${pembulatan > 0 ? '+' : ''}Rp ${Math.abs(pembulatan).toLocaleString('id-ID')}\n` : '';
 
-    let teks = `*RINCIAN PESANAN*\nCustomer: ${nama}\n──────────────\n${itemLines}──────────────\nTotal: Rp ${total.toLocaleString('id-ID')}\nDP/Tunai: Rp ${dp.toLocaleString('id-ID')}\nSisa Tagihan: Rp ${sisa.toLocaleString('id-ID')}\n──────────────\n${catatanToko}\n`;
+    let teks = `*RINCIAN PESANAN*\nCustomer: ${nama}\n──────────────\n${itemLines}──────────────\n${diskonText}${pembulatanText}Total: Rp ${total.toLocaleString('id-ID')}\nDP/Tunai: Rp ${dp.toLocaleString('id-ID')}\nSisa Tagihan: Rp ${sisa.toLocaleString('id-ID')}\n──────────────\n${catatanToko}\n`;
 
     window.open(`https://wa.me/${waPhone}?text=${encodeURIComponent(teks)}`, "whatsappWindow");
 };
