@@ -158,7 +158,41 @@ window.editModalAwalManual = function() {
 };
 window.bukaModalTutupKasir = async function() {
     const tglSekarang = new Date().toISOString().split('T')[0];
+    const kasirNama = window.currentUserNama || 'Kasir';
     
+    // Cek apakah sudah pernah tutup kasir hari ini
+    try {
+        const snap = await get(ref(db, 'daily_reports'));
+        if (snap.exists()) {
+            let reports = Object.values(snap.val());
+            let alreadyClosed = reports.find(r => r.tanggal === tglSekarang && r.kasir === kasirNama);
+            if (alreadyClosed) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Sudah Tutup Kasir!',
+                    html: `Anda (<b>${kasirNama}</b>) sudah melakukan tutup kasir hari ini.<br><br><b>Ada pelanggan telat (tambahan transaksi)?</b><br>Jika Anda melanjutkan, laporan sebelumnya akan <b>ditimpa (diupdate)</b> dengan total yang baru agar pembukuan tidak ganda.`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Ya, Update Laporan',
+                    cancelButtonText: 'Batal',
+                    confirmButtonColor: '#d33'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        window.tutupKasirExistingId = alreadyClosed.id; // Simpan ID lama untuk ditimpa
+                        lanjutBukaModalTutupKasir(tglSekarang);
+                    }
+                });
+                return; // Stop eksekusi dan tunggu konfirmasi
+            }
+        }
+    } catch(e) {
+        console.error("Error cek tutup kasir:", e);
+    }
+    
+    window.tutupKasirExistingId = null; // Reset jika buat baru
+    lanjutBukaModalTutupKasir(tglSekarang);
+};
+
+window.lanjutBukaModalTutupKasir = async function(tglSekarang) {
     let masukTunai = 0;
     let masukNonCash = 0;
     let keluarKas = 0;
@@ -249,7 +283,9 @@ window.prosesTutupKasirAkhir = async function() {
     let selisih = fisik - seharusnya;
 
     const tglSekarang = new Date().toISOString().split('T')[0];
-    const reportId = "REP-" + Date.now();
+    
+    // Ganti ID dengan ID lama jika ini adalah update laporan
+    const reportId = window.tutupKasirExistingId || "REP-" + Date.now();
     const kasirNama = window.currentUserNama || 'Kasir';
     
     const reportData = {
@@ -271,7 +307,8 @@ window.prosesTutupKasirAkhir = async function() {
         
         // 2. Siapkan Teks WA untuk Owner
         let selisihText = selisih < 0 ? '(MINUS)' : selisih > 0 ? '(LEBIH)' : '(PAS)';
-        let teksWA = `(${new Date().toLocaleDateString('id-ID')})\n` +
+        let nowWA = new Date();
+        let teksWA = `(${nowWA.toLocaleDateString('id-ID')} ${nowWA.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })})\n` +
                      `Kasir: ${kasirNama}\n\n` +
                      `Modal Awal: Rp ${modalAwal.toLocaleString('id-ID')}\n` +
                      `Masuk (Tunai): Rp ${window.tutupKasirData.masukTunai.toLocaleString('id-ID')}\n` +
@@ -352,7 +389,7 @@ window.cetakLaporanShift = function(reportData) {
         <div class="line"></div>
         
         <table>
-            <tr><td>TGL   :</td><td class="text-right">${reportData.tanggal}</td></tr>
+            <tr><td>WAKTU :</td><td class="text-right">${new Date(reportData.timestamp).toLocaleDateString('id-ID')} ${new Date(reportData.timestamp).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td></tr>
             <tr><td>KASIR :</td><td class="text-right">${reportData.kasir.substring(0,12)}</td></tr>
         </table>
         
@@ -472,9 +509,8 @@ window.renderDataKeuangan = async function() {
                 <tr>
                     <th>Tanggal</th>
                     <th>Kasir</th>
-                    <th class="text-end">Pemasukan Tunai</th>
-                    <th class="text-end">Fisik Laci</th>
-                    <th class="text-end">Selisih</th>
+                    <th class="text-end">Total Pendapatan Sistem</th>
+                    <th class="text-center">Status Laci</th>
                     <th class="text-center">Detail</th>
                 </tr>
             `;
@@ -482,7 +518,7 @@ window.renderDataKeuangan = async function() {
 
             const snap = await get(ref(db, 'daily_reports'));
             if (!snap.exists()) {
-                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Belum ada riwayat tutup kasir.</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Belum ada riwayat tutup kasir.</td></tr>';
                 return;
             }
 
@@ -498,21 +534,23 @@ window.renderDataKeuangan = async function() {
 
             let html = '';
             filtered.forEach(rep => {
-                let selisihColor = rep.selisih < 0 ? 'text-danger' : (rep.selisih > 0 ? 'text-success' : 'text-muted');
+                let totalSistem = rep.modalAwal + rep.masukTunai + rep.masukNonCash - rep.keluarKas;
+                let statusBadge = rep.selisih === 0 ? '<span class="badge bg-success">PAS</span>' : 
+                                 (rep.selisih > 0 ? `<span class="badge bg-warning text-dark">+ Rp ${rep.selisih.toLocaleString('id-ID')}</span>` : 
+                                                    `<span class="badge bg-danger">- Rp ${Math.abs(rep.selisih).toLocaleString('id-ID')}</span>`);
                 html += `
                 <tr>
                     <td>${rep.tanggal}</td>
                     <td class="fw-bold">${rep.kasir}</td>
-                    <td class="text-end">Rp ${rep.masukTunai.toLocaleString('id-ID')}</td>
-                    <td class="text-end fw-bold">Rp ${rep.uangFisik.toLocaleString('id-ID')}</td>
-                    <td class="text-end fw-bold ${selisihColor}">${rep.selisih > 0 ? '+' : ''} Rp ${rep.selisih.toLocaleString('id-ID')}</td>
+                    <td class="text-end fw-bold">Rp ${totalSistem.toLocaleString('id-ID')}</td>
+                    <td class="text-center">${statusBadge}</td>
                     <td class="text-center">
                         <button class="btn btn-primary btn-sm" onclick="lihatDetailReport('${rep.id}')">Lihat</button>
                     </td>
                 </tr>`;
             });
             
-            if(filtered.length === 0) html = '<tr><td colspan="6" class="text-center py-4 text-muted">Tidak ada data di periode ini.</td></tr>';
+            if(filtered.length === 0) html = '<tr><td colspan="5" class="text-center py-4 text-muted">Tidak ada data di periode ini.</td></tr>';
             tableBody.innerHTML = html;
         } else if (type === 'piutang') {
             title.innerHTML = '<i class="fa-solid fa-hand-holding-dollar"></i> Buku Piutang (Belum Lunas)';
@@ -697,23 +735,32 @@ window.lihatDetailReport = async function(id) {
         const snap = await get(ref(db, `daily_reports/${id}`));
         if (snap.exists()) {
             const rep = snap.val();
-            let sel = rep.selisih;
-            let selTxt = sel < 0 ? `<span class="text-danger">MINUS Rp ${Math.abs(sel).toLocaleString('id-ID')}</span>` : 
-                         (sel > 0 ? `<span class="text-success">LEBIH Rp ${sel.toLocaleString('id-ID')}</span>` : "PAS (Rp 0)");
+            // Format tanggal (H/B/T) dan Jam
+            let dateParts = rep.tanggal.split('-'); // asumsi YYYY-MM-DD
+            let formattedDate = rep.tanggal;
+            let timeStr = "";
+            if (rep.timestamp) {
+                let d = new Date(rep.timestamp);
+                timeStr = " " + d.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+            }
+            if(dateParts.length === 3) {
+                formattedDate = `${parseInt(dateParts[2])}/${parseInt(dateParts[1])}/${dateParts[0]}${timeStr}`;
+            } else {
+                formattedDate += timeStr;
+            }
+            let total = rep.modalAwal + rep.masukTunai + rep.masukNonCash - rep.keluarKas;
             
             Swal.fire({
-                title: `Laporan ${rep.tanggal}`,
                 html: `
-                <div class="text-start" style="font-size:0.9rem;">
-                    <b>Kasir:</b> ${rep.kasir}<br><br>
-                    <b>Modal Awal:</b> Rp ${rep.modalAwal.toLocaleString('id-ID')}<br>
-                    <b>Pemasukan Tunai:</b> Rp ${rep.masukTunai.toLocaleString('id-ID')}<br>
-                    <b>Pemasukan Non-Tunai:</b> Rp ${rep.masukNonCash.toLocaleString('id-ID')}<br>
-                    <b>Pengeluaran Kas:</b> -Rp ${rep.keluarKas.toLocaleString('id-ID')}<br>
-                    <hr>
-                    <b>Hitungan Seharusnya:</b> Rp ${(rep.modalAwal + rep.masukTunai - rep.keluarKas).toLocaleString('id-ID')}<br>
-                    <b>Hitungan Fisik Laci:</b> Rp ${rep.uangFisik.toLocaleString('id-ID')}<br>
-                    <b>Selisih:</b> ${selTxt}
+                <div class="text-start" style="font-size:1.1rem; line-height: 1.5; font-family: monospace, sans-serif;">
+                    (${formattedDate})<br>
+                    Kasir: ${rep.kasir}<br><br>
+                    Modal Awal: Rp ${rep.modalAwal.toLocaleString('id-ID')}<br>
+                    Masuk (Tunai): Rp ${rep.masukTunai.toLocaleString('id-ID')}<br>
+                    Masuk (TF/QR): Rp ${rep.masukNonCash.toLocaleString('id-ID')}<br>
+                    Pengeluaran: -Rp ${rep.keluarKas.toLocaleString('id-ID')}<br>
+                    ------------------------<br>
+                    <b>*Total:* Rp ${total.toLocaleString('id-ID')}</b>
                 </div>`,
                 confirmButtonText: 'Tutup'
             });
