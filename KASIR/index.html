@@ -706,14 +706,14 @@
                     <div id="order-view-table">
                         <div class="table-responsive">
                             <table class="table table-hover table-premium align-middle small">
-                                <thead>
+                                <thead id="order-table-head">
                                     <tr>
-                                        <th onclick="sortTableOrder('notaId')" style="cursor:pointer;">No Nota ↕</th>
-                                        <th onclick="sortTableOrder('tanggal')" style="cursor:pointer;">Tanggal ↕</th>
-                                        <th onclick="sortTableOrder('nama')" style="cursor:pointer;">Customer ↕</th>
-                                        <th onclick="sortTableOrder('totalBelanja')" style="cursor:pointer;">Total ↕</th>
-                                        <th onclick="sortTableOrder('dpMasuk')" style="cursor:pointer;">Terbayar ↕</th>
-                                        <th onclick="sortTableOrder('sisaTagihan')" style="cursor:pointer;">Sisa ↕</th>
+                                        <th onclick="sortTableOrder('notaId')" style="cursor:pointer;">No Nota <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                        <th onclick="sortTableOrder('tanggal')" style="cursor:pointer;">Tanggal <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                        <th onclick="sortTableOrder('nama')" style="cursor:pointer;">Customer <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                        <th onclick="sortTableOrder('totalBelanja')" style="cursor:pointer;">Total <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                        <th onclick="sortTableOrder('dpMasuk')" style="cursor:pointer;">Terbayar <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                        <th onclick="sortTableOrder('sisaTagihan')" style="cursor:pointer;">Sisa <i class="fa-solid fa-sort text-muted ms-1"></i></th>
                                         <th>Pembayaran</th>
                                         <th>Progress</th>
                                         <th>Detail</th>
@@ -885,11 +885,11 @@
                             </div>
                             <div class="table-responsive" style="max-height:480px; overflow-y:auto;">
                                 <table id="table-master-produk" class="table table-hover align-middle small">
-                                    <thead>
+                                    <thead id="produk-table-head">
                                         <tr>
-                                            <th onclick="sortTableProduk('nama')" style="width:40%; cursor:pointer;">Nama Produk ↕</th>
-                                            <th onclick="sortTableProduk('kategori')" style="cursor:pointer;">Kategori ↕</th>
-                                            <th onclick="sortTableProduk('harga')" style="cursor:pointer;">Harga ↕</th>
+                                            <th onclick="sortTableProduk('nama')" style="width:40%; cursor:pointer;">Nama Produk <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                            <th onclick="sortTableProduk('kategori')" style="cursor:pointer;">Kategori <i class="fa-solid fa-sort text-muted ms-1"></i></th>
+                                            <th onclick="sortTableProduk('harga')" style="cursor:pointer;">Harga <i class="fa-solid fa-sort text-muted ms-1"></i></th>
                                             <th class="text-center">Aksi</th>
                                         </tr>
                                     </thead>

@@ -13,8 +13,8 @@ window.setKeranjang = (k) => { keranjang = k; };
 let editIndex = -1;
 let listProduk = [];
 
-let currentSortField = null;
-let currentSortDirection = "asc";
+let currentSortField = "notaId";
+let currentSortDirection = "desc";
 let currentProdukSort = null;
 let currentProdukDirection = "asc";
 let produkTerpilih = null;
@@ -245,6 +245,7 @@ window.sortTableProduk = function (field) {
     }
 
     renderTabelAdminProduk();
+    window.updateSortIcons('produk-table-head', currentProdukSort, currentProdukDirection);
 }
 
 window.sortTableOrder = function (field) {
@@ -263,6 +264,7 @@ window.sortTableOrder = function (field) {
     }
 
     renderTableAntrean();
+    window.updateSortIcons('order-table-head', currentSortField, currentSortDirection);
 }
 
 function renderTableAntrean() {
@@ -1959,7 +1961,7 @@ function siapkanAreaPrint(notaId, nama, phone, items, total, dp, sisa, isDraft =
         <div class="line"></div>
         <table class="header-table">
             <tr><td>ID NOTA</td><td>:</td><td class="text-right fw-bold">${isDraft ? 'DRAFT' : '#' + notaId}</td></tr>
-            <tr><td>TANGGAL</td><td>:</td><td class="text-right">${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</td></tr>
+            <tr><td>TANGGAL</td><td>:</td><td class="text-right">${new Date().toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}</td></tr>
             <tr><td>KASIR</td><td>:</td><td class="text-right">${window.currentUserNama || 'Kasir'}</td></tr>
             <tr><td>CUST</td><td>:</td><td class="text-right">${nama || 'Umum'}</td></tr>
             <tr><td>TELP</td><td>:</td><td class="text-right">${phone || '-'}</td></tr>
@@ -2174,7 +2176,8 @@ window.populateDigitalInvoice = function(notaId, nama, phone, items, total, dp, 
     if(document.getElementById("p-nota-id")) document.getElementById("p-nota-id").innerText = isDraft ? "Draft Order" : notaId;
     if(document.getElementById("p-customer-nama")) document.getElementById("p-customer-nama").innerText = nama || "-";
     
-    let tgl = new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+    let now = new Date();
+    let tgl = now.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) + " " + now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
     if(document.getElementById("p-nota-tanggal")) document.getElementById("p-nota-tanggal").innerText = tgl;
     
     if(document.getElementById("p-nota-status")) {
@@ -2318,8 +2321,9 @@ function _prosesSimpanTransaksiCloud(tipe) {
 
     let itemsSnapshot = [...keranjang];
 
+    let waktuString = new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
     const orderObj = {
-        notaId: notaId, tanggal: tgl, nama: nama, phone: phone,
+        notaId: notaId, tanggal: tgl, waktu: waktuString, timestamp: Date.now(), nama: nama, phone: phone,
         subtotalBelanja: subtotalAsli, diskonNominal: diskonNominal, pembulatan: pembulatan,
         totalBelanja: totalBulat, dpMasuk: dp, sisaTagihan: sisaTagihan,
         status: "PENDING", item: itemsSnapshot,
@@ -2726,7 +2730,7 @@ function bukaPopupDetailOrder(notaId) {
     let html = `
         <div class="receipt-header text-center mb-4 pb-3 border-bottom border-dashed">
             <h5 class="fw-bold mb-1">#${order.notaId}</h5>
-            <small class="text-muted d-block mb-3">${order.tanggal}</small>
+            <small class="text-muted d-block mb-3">${order.tanggal} ${order.waktu ? '- ' + order.waktu : ''}</small>
             
             <div class="d-flex justify-content-between text-start bg-light p-3 rounded-3">
                 <div>
@@ -3858,7 +3862,16 @@ window.updateSortIcons = function (theadId, field, dir) {
     });
 
     // Update icon yang diklik berdasarkan nama fungsi yg dipanggil
-    const onclickStr = theadId === 'report-table-head' ? `sortLaporan('${field}')` : `sortDashboard('${field}')`;
+    let onclickStr = '';
+    if (theadId === 'report-table-head') {
+        onclickStr = `sortLaporan('${field}')`;
+    } else if (theadId === 'order-table-head') {
+        onclickStr = `sortTableOrder('${field}')`;
+    } else if (theadId === 'produk-table-head') {
+        onclickStr = `sortTableProduk('${field}')`;
+    } else {
+        onclickStr = `sortDashboard('${field}')`;
+    }
     const th = thead.querySelector(`th[onclick="${onclickStr}"]`);
 
     if (th) {
